@@ -43,6 +43,7 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       description: description,
       priority: priority.toString(),
       status: status,
+      focusStartTime: status == 'Focus' ? DateTime.now() : null,
     );
     try {
       await _localStorageService.addTask(newTask);
