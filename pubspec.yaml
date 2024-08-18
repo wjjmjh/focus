@@ -28,6 +28,6 @@ flutter:
   uses-material-design: true
 
 flutter_icons:
-  image_path: "icon/icon.png"
+  image_path: "icon/icon.webp"
   android: true
   ios: true
