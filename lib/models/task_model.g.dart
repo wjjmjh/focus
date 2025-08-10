@@ -22,7 +22,7 @@ class TaskAdapter extends TypeAdapter<Task> {
       description: fields[2] as String,
       priority: fields[3] as String,
       status: fields[4] as String,
-      timeSpent: Duration(milliseconds: fields[5] as int),
+      timeSpent: Duration(milliseconds: (fields[5] as int?) ?? 0),
       focusStartTime: fields[6] as DateTime?,
     );
   }
