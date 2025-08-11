@@ -79,14 +79,18 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                           BorderRadius.vertical(top: Radius.circular(8.0)),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          widget.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                        const SizedBox(width: 48),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              widget.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
                           ),
                         ),
                         IconButton(
