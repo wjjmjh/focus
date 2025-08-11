@@ -42,9 +42,13 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
         DragTarget<Task>(
           onAccept: (Task task) {
             final notifier = ref.read(taskListProvider.notifier);
+
+            bool shouldShowConfetti =
+                widget.title == 'Done' && task.status != 'Done';
+
             notifier.moveTask(task, widget.title);
 
-            if (widget.title == 'Done') {
+            if (shouldShowConfetti) {
               _confettiController.play();
             }
           },
@@ -119,8 +123,9 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
           },
         ),
         if (widget.title == 'Done')
-          Align(
-            alignment: Alignment.topCenter,
+          Positioned(
+            left: 150,
+            top: 200,
             child: ConfettiWidget(
               confettiController: _confettiController,
               blastDirection: 3.14 / 2, // towards the bottom of the screen
