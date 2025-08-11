@@ -69,7 +69,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       onTap: () {
         _showEditTaskForm(context);
       },
-      child: Draggable<Task>(
+      child: LongPressDraggable<Task>(
         data: widget.task,
         feedback: Material(
           color: Colors.transparent,
