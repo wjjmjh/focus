@@ -35,7 +35,8 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.example.focus"
-    compileSdkVersion flutter.compileSdkVersion
+    // ensure minimum 34 for flutter_local_notifications plugin
+    compileSdkVersion Math.max(flutter.compileSdkVersion, 34)
     ndkVersion flutter.ndkVersion
 
     compileOptions {
