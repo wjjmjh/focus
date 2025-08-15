@@ -5,6 +5,8 @@ import '../models/task_model.dart';
 import '../providers/task_provider.dart';
 import 'add_task_form.dart';
 
+final ValueNotifier<String?> _dragStateNotifier = ValueNotifier<String?>(null);
+
 class TaskCard extends ConsumerStatefulWidget {
   final Task task;
 
@@ -12,42 +14,65 @@ class TaskCard extends ConsumerStatefulWidget {
       : super(key: key ?? ValueKey(task.id));
 
   @override
-  _TaskCardState createState() => _TaskCardState();
+  ConsumerState<TaskCard> createState() => _TaskCardState();
 }
 
 class _TaskCardState extends ConsumerState<TaskCard> {
   Timer? _timer;
-  late Duration _elapsedTime;
+  ValueNotifier<Duration>? _elapsedVN;
 
   @override
   void initState() {
     super.initState();
-    _elapsedTime = widget.task.timeSpent ?? Duration.zero;
-    if (widget.task.status == 'Focus') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _startTimer();
-      });
+    _elapsedVN = ValueNotifier<Duration>(_computeElapsed());
+    if (_isFocused(widget.task)) _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant TaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasFocused = _isFocused(oldWidget.task);
+    final isFocusedNow = _isFocused(widget.task);
+
+    if (!wasFocused && isFocusedNow) {
+      _elapsedVN?.value = _computeElapsed();
+      _startTimer();
+    } else if (wasFocused && !isFocusedNow) {
+      _stopTimer();
+      _elapsedVN?.value = _computeElapsed();
+    } else if (isFocusedNow &&
+        oldWidget.task.focusStartTime != widget.task.focusStartTime) {
+      _elapsedVN?.value = _computeElapsed();
     }
   }
 
   @override
-  void didUpdateWidget(TaskCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.task.status == 'Focus' && _timer == null) {
-      _startTimer();
-    } else if (widget.task.status != 'Focus' && _timer != null) {
-      _stopTimer();
-    }
+  void dispose() {
+    _stopTimer();
+    _elapsedVN?.dispose();
+    super.dispose();
+  }
+
+  static bool _isFocused(Task t) => t.status == 'Focus';
+
+  Duration _computeElapsed() {
+    final base = widget.task.timeSpent;
+    final start = widget.task.focusStartTime;
+
+    if (start == null || !_isFocused(widget.task)) return base;
+
+    final now = DateTime.now();
+    final extra = now.isAfter(start) ? now.difference(start) : Duration.zero;
+    return base + extra;
+  }
+
+  void _tick() {
+    _elapsedVN?.value = _computeElapsed();
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _elapsedTime = (widget.task.timeSpent ?? Duration.zero) +
-            DateTime.now()
-                .difference(widget.task.focusStartTime ?? DateTime.now());
-      });
-    });
+    if (_timer != null) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   void _stopTimer() {
@@ -56,136 +81,249 @@ class _TaskCardState extends ConsumerState<TaskCard> {
   }
 
   @override
-  void dispose() {
-    _stopTimer();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDone = widget.task.status == 'Done';
+    final task = widget.task;
+    final isDone = task.status == 'Done';
+    final priority = int.tryParse(task.priority) ?? 3;
+    final isHighPriority = priority >= 4;
+    final priorityColor = _priorityColor(priority);
+    final dueColor = _dueDateColor(task.dueDate);
 
-    return GestureDetector(
-      onTap: () {
-        _showEditTaskForm(context);
-      },
-      child: LongPressDraggable<Task>(
-        data: widget.task,
-        feedback: Material(
-          color: Colors.transparent,
-          child: _buildTaskCardContent(context, isDone),
-        ),
-        childWhenDragging: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade300,
-                blurRadius: 6.0,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    return ValueListenableBuilder<String?>(
+      valueListenable: _dragStateNotifier,
+      builder: (context, draggingId, _) {
+        if (draggingId == task.id) return const SizedBox.shrink();
+
+        return GestureDetector(
+          onTap: () => _showEditTaskForm(context),
+          child: LongPressDraggable<Task>(
+            data: task,
+            feedback: Material(
+              color: Colors.transparent,
+              child: _buildCard(
+                  context, isDone, isHighPriority, priorityColor, dueColor),
+            ),
+            childWhenDragging: const SizedBox.shrink(),
+            onDragStarted: () {
+              _dragStateNotifier.value = task.id;
+              if (_isFocused(task)) {
+                _stopTimer();
+                ref
+                    .read(taskListProvider.notifier)
+                    .saveFocusTimeBeforeDrag(task);
+              }
+            },
+            onDragCompleted: () {
+              _dragStateNotifier.value = null;
+            },
+            onDraggableCanceled: (_, __) {
+              _dragStateNotifier.value = null;
+              if (_isFocused(task)) {
+                _startTimer();
+              }
+            },
+            child: _buildCard(
+                context, isDone, isHighPriority, priorityColor, dueColor),
           ),
-        ),
-        child: _buildTaskCardContent(context, isDone),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTaskCardContent(BuildContext context, bool isDone) {
+  Widget _buildCard(
+    BuildContext context,
+    bool isDone,
+    bool isHighPriority,
+    Color priorityColor,
+    Color dueColor,
+  ) {
+    final task = widget.task;
+
     return Container(
       width: 280,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
-        color: Colors.grey.shade800,
-        borderRadius: BorderRadius.circular(8.0),
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 6.0,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8.0,
+            offset: const Offset(0, 4),
           ),
+          if (isHighPriority)
+            BoxShadow(
+              color: priorityColor.withOpacity(0.3),
+              blurRadius: 12.0,
+              offset: const Offset(0, 0),
+            ),
         ],
-      ),
-      child: ListTile(
-        title: Text(
-          widget.task.title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            decoration: isDone ? TextDecoration.lineThrough : null,
-          ),
+        border: Border.all(
+          color: priorityColor.withOpacity(isHighPriority ? 0.8 : 0.5),
+          width: isHighPriority ? 2.0 : 1.5,
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.task.description,
-              style: TextStyle(color: Colors.grey.shade300),
-            ),
-            Text(
-              'Priority: ${widget.task.priority}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade300,
-              ),
-            ),
-            if (widget.task.focusStartTime != null ||
-                _elapsedTime > Duration.zero)
-              Text(
-                '${_formatDuration(_elapsedTime)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF20BC20),
+      ),
+      child: Row(
+        children: [
+          if (isHighPriority)
+            Container(
+              width: 4.0,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [priorityColor, priorityColor.withOpacity(0.6)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12.0),
+                  bottomLeft: Radius.circular(12.0),
                 ),
               ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(Icons.delete, color: Colors.red.shade400),
-          onPressed: () {
-            _confirmDelete(context);
-          },
-        ),
+            ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: isHighPriority ? 12.0 : 16.0,
+                right: 16.0,
+                top: 16.0,
+                bottom: 16.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade100,
+                            decoration:
+                                isDone ? TextDecoration.lineThrough : null,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _PriorityChip(
+                              priorityText: 'P${task.priority}',
+                              color: priorityColor),
+                          const SizedBox(width: 8.0),
+                          GestureDetector(
+                            onTap: () => _confirmDelete(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(4.0),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade900.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6.0),
+                              ),
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: Colors.red.shade300,
+                                size: 16.0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (task.description.isNotEmpty) ...[
+                    const SizedBox(height: 8.0),
+                    Text(
+                      task.description,
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.grey.shade400,
+                        height: 1.3,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 12.0),
+                  Row(
+                    children: [
+                      if (task.dueDate != null) ...[
+                        _DueChip(dueDate: task.dueDate!, color: dueColor),
+                        const Spacer(),
+                      ],
+                      if (task.focusStartTime != null ||
+                          (_elapsedVN?.value ?? Duration.zero) >
+                              Duration.zero) ...[
+                        if (task.dueDate == null) const Spacer(),
+                        if (_elapsedVN != null)
+                          _TimerChip(
+                            isRunning: _isFocused(task),
+                            elapsedVN: _elapsedVN!,
+                          ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  static Color _priorityColor(int p) {
+    switch (p) {
+      case 5:
+        return Colors.redAccent.shade200;
+      case 4:
+        return Colors.orange.shade500;
+      case 3:
+        return Colors.blue.shade500;
+      case 2:
+        return Colors.green.shade500;
+      case 1:
+        return Colors.grey.shade600;
+      default:
+        return Colors.blue.shade500;
+    }
+  }
+
+  static Color _dueDateColor(DateTime? due) {
+    if (due == null) return Colors.grey.shade400;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(due.year, due.month, due.day);
+    final diff = d.difference(today).inDays;
+
+    if (diff < 0) return Colors.red.shade400;
+    if (diff == 0) return Colors.orange.shade400;
+    if (diff == 1) return Colors.amber.shade400;
+    return Colors.green.shade400;
   }
 
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Task'),
-          content: const Text('Are you sure you want to delete this task?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Delete'),
-              onPressed: () async {
-                await ref
-                    .read(taskListProvider.notifier)
-                    .deleteTask(widget.task);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Task'),
+        content: const Text('Are you sure you want to delete this task?'),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          TextButton(
+            child: const Text('Delete'),
+            onPressed: () async {
+              await ref.read(taskListProvider.notifier).deleteTask(widget.task);
+              if (mounted) Navigator.of(context).maybePop();
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -202,17 +340,143 @@ class _TaskCardState extends ConsumerState<TaskCard> {
         ),
       ),
       builder: (context) => AddTaskForm(
-        addTaskHandler: (String title, String description, int priority) {
+        addTaskHandler: (String title, String description, int priority,
+            DateTime? dueDate) {
           final updatedTask = widget.task.copyWith(
             title: title,
             description: description,
             priority: priority.toString(),
+            dueDate: dueDate,
+            isDateDetected: dueDate != null,
           );
           ref.read(taskListProvider.notifier).updateTask(updatedTask);
         },
         initialTitle: widget.task.title,
         initialDescription: widget.task.description,
-        initialPriority: int.parse(widget.task.priority),
+        initialPriority: int.tryParse(widget.task.priority) ?? 3,
+        initialDueDate: widget.task.dueDate,
+      ),
+    );
+  }
+}
+
+class _PriorityChip extends StatelessWidget {
+  final String priorityText;
+  final Color color;
+  const _PriorityChip({required this.priorityText, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, color.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.4),
+            blurRadius: 4.0,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: color.withOpacity(0.6),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        priorityText,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12.0,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _DueChip extends StatelessWidget {
+  final DateTime dueDate;
+  final Color color;
+  const _DueChip({required this.dueDate, required this.color});
+
+  static String _fmt(DateTime d) => '${d.day}/${d.month}/${d.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: color.withOpacity(0.4), width: 1.0),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule, color: color, size: 12.0),
+          const SizedBox(width: 4.0),
+          Text(
+            _fmt(dueDate),
+            style: TextStyle(
+                fontSize: 12.0, fontWeight: FontWeight.w500, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimerChip extends StatelessWidget {
+  final bool isRunning;
+  final ValueNotifier<Duration> elapsedVN;
+
+  const _TimerChip({required this.isRunning, required this.elapsedVN});
+
+  static String _fmt(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(d.inHours)}:${two(d.inMinutes.remainder(60))}:${two(d.inSeconds.remainder(60))}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      decoration: BoxDecoration(
+        color: Colors.green.shade900.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(
+          color: Colors.green.shade400.withOpacity(0.4),
+          width: 1.0,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isRunning ? Icons.play_circle_filled : Icons.timer,
+            color: Colors.green.shade400,
+            size: 12.0,
+          ),
+          const SizedBox(width: 4.0),
+          ValueListenableBuilder<Duration>(
+            valueListenable: elapsedVN,
+            builder: (_, d, __) => Text(
+              _fmt(d),
+              style: TextStyle(
+                fontSize: 12.0,
+                fontWeight: FontWeight.w600,
+                color: Colors.green.shade400,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
