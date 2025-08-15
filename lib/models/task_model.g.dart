@@ -24,7 +24,7 @@ class TaskAdapter extends TypeAdapter<Task> {
       status: fields[4] as String,
       focusStartTime: fields[6] as DateTime?,
       dueDate: fields[7] as DateTime?,
-      isDateDetected: fields[8] as bool,
+      isDateDetected: fields[8] as bool? ?? false,
     );
   }
 
