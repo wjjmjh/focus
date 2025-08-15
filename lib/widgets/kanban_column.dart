@@ -60,6 +60,10 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(
+                  color: Colors.grey.shade400,
+                  width: 2.0,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.shade300,
@@ -73,10 +77,10 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.black,
                       borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(8.0)),
+                          BorderRadius.vertical(top: Radius.circular(6.0)),
                     ),
                     child: Row(
                       children: [
@@ -157,9 +161,10 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
         ),
       ),
       builder: (context) => AddTaskForm(
-        addTaskHandler: (String title, String description, int priority) {
+        addTaskHandler: (String title, String description, int priority,
+            DateTime? dueDate) {
           final notifier = ref.read(taskListProvider.notifier);
-          notifier.addTask(title, description, priority, widget.title);
+          notifier.addTask(title, description, priority, widget.title, dueDate);
         },
       ),
     );
