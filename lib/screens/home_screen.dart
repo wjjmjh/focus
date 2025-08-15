@@ -4,18 +4,20 @@ import '../providers/task_provider.dart';
 import '../widgets/kanban_board.dart';
 
 class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final localStorageServiceAsync = ref.watch(localStorageServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text('focus')),
+      appBar: AppBar(title: const Text('focus')),
       body: localStorageServiceAsync.when(
         data: (_) {
           final tasks = ref.watch(taskListProvider);
           return KanbanBoard(tasks: tasks);
         },
-        loading: () => Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Center(child: Text('error: $error')),
       ),
     );
