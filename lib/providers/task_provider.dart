@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 
 final localStorageServiceProvider =
     FutureProvider<LocalStorageService>((ref) async {
@@ -29,14 +30,15 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
     try {
       final tasks = await _localStorageService.getTasks();
       state = tasks;
+      await NotificationService.scheduleAllTaskReminders(tasks);
     } catch (e) {
       print('error loading tasks: $e');
       state = [];
     }
   }
 
-  Future<void> addTask(
-      String title, String description, int priority, String status) async {
+  Future<void> addTask(String title, String description, int priority,
+      String status, DateTime? dueDate) async {
     final newTask = Task(
       id: DateTime.now().toString(),
       title: title,
@@ -44,10 +46,17 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       priority: priority.toString(),
       status: status,
       focusStartTime: status == 'Focus' ? DateTime.now() : null,
+      dueDate: dueDate,
+      isDateDetected: dueDate != null,
     );
+
     try {
       await _localStorageService.addTask(newTask);
       state = [...state, newTask];
+
+      if (dueDate != null) {
+        await NotificationService.scheduleTaskReminders(newTask);
+      }
     } catch (e) {
       print('error adding task: $e');
     }
@@ -60,6 +69,12 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
         for (final t in state)
           if (t.id == task.id) task else t
       ];
+
+      if (task.status == 'Done') {
+        await NotificationService.cancelTaskReminders(task);
+      } else if (task.dueDate != null) {
+        await NotificationService.scheduleTaskReminders(task);
+      }
     } catch (e) {
       print('error updating task: $e');
     }
@@ -68,33 +83,44 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
   Future<void> deleteTask(Task task) async {
     try {
       await _localStorageService.deleteTask(task);
+      await NotificationService.cancelTaskReminders(task);
       state = state.where((t) => t.id != task.id).toList();
     } catch (e) {
       print('error deleting task: $e');
     }
   }
 
+  Future<void> saveFocusTimeBeforeDrag(Task task) async {
+    if (task.status == 'Focus' && task.focusStartTime != null) {
+      final timeSpentInFocus = DateTime.now().difference(task.focusStartTime!);
+      final updatedTask = task.copyWith(
+        timeSpent: task.timeSpent + timeSpentInFocus,
+        focusStartTime: null,
+      );
+      await updateTask(updatedTask);
+    }
+  }
+
   Future<void> moveTask(Task task, String newStatus) async {
     try {
+      final currentTask =
+          state.firstWhere((t) => t.id == task.id, orElse: () => task);
       late Task updatedTask;
 
-      if (newStatus == 'Focus' && task.status != 'Focus') {
+      if (newStatus == 'Focus' && currentTask.status != 'Focus') {
         // start focusing & tracking time
-        updatedTask = task.copyWith(
+        updatedTask = currentTask.copyWith(
           status: newStatus,
           focusStartTime: DateTime.now(),
         );
-      } else if (task.status == 'Focus' && newStatus != 'Focus') {
-        // stop focusing & update total time spent
-        final timeSpentInFocus =
-            DateTime.now().difference(task.focusStartTime ?? DateTime.now());
-        updatedTask = task.copyWith(
+      } else if (currentTask.status == 'Focus' && newStatus != 'Focus') {
+        // stop focusing
+        updatedTask = currentTask.copyWith(
           status: newStatus,
           focusStartTime: null,
-          timeSpent: (task.timeSpent ?? Duration.zero) + timeSpentInFocus,
         );
       } else {
-        updatedTask = task.copyWith(status: newStatus);
+        updatedTask = currentTask.copyWith(status: newStatus);
       }
 
       await _localStorageService.updateTask(updatedTask);
@@ -103,8 +129,18 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
         for (final t in state)
           if (t.id == updatedTask.id) updatedTask else t
       ];
+
+      if (updatedTask.status == 'Done') {
+        await NotificationService.cancelTaskReminders(updatedTask);
+      } else if (updatedTask.dueDate != null) {
+        await NotificationService.scheduleTaskReminders(updatedTask);
+      }
     } catch (e) {
       print('error moving task: $e');
     }
+  }
+
+  Future<void> checkDueDatesAndNotify() async {
+    await NotificationService.scheduleAllTaskReminders(state);
   }
 }
