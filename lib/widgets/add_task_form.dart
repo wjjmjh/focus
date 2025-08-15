@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AddTaskForm extends StatefulWidget {
-  final Function(String, String, int) addTaskHandler;
+  final Function(String, String, int, DateTime?) addTaskHandler;
   final String? initialTitle;
   final String? initialDescription;
   final int? initialPriority;
+  final DateTime? initialDueDate;
 
   const AddTaskForm({
     super.key,
@@ -12,6 +13,7 @@ class AddTaskForm extends StatefulWidget {
     this.initialTitle,
     this.initialDescription,
     this.initialPriority,
+    this.initialDueDate,
   });
 
   @override
@@ -22,6 +24,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late int _selectedPriority;
+  DateTime? _selectedDueDate;
 
   @override
   void initState() {
@@ -30,6 +33,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
     _descriptionController =
         TextEditingController(text: widget.initialDescription);
     _selectedPriority = widget.initialPriority ?? 3; // Default priority
+    _selectedDueDate = widget.initialDueDate;
   }
 
   @override
@@ -83,6 +87,28 @@ class _AddTaskFormState extends State<AddTaskForm> {
                 controller: _descriptionController,
               ),
             ),
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10.0),
+              child: InkWell(
+                onTap: _selectDueDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    hintText: 'Due Date (optional)',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  child: Text(
+                    _selectedDueDate == null
+                        ? 'Select due date'
+                        : '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}',
+                    style: TextStyle(
+                      color:
+                          _selectedDueDate == null ? Colors.grey : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             DropdownButtonFormField<int>(
               value: _selectedPriority,
               decoration: const InputDecoration(
@@ -108,6 +134,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
                     _titleController.text.trim(),
                     _descriptionController.text.trim(),
                     _selectedPriority,
+                    _selectedDueDate,
                   );
                   Navigator.of(context).pop();
                 }
@@ -118,5 +145,19 @@ class _AddTaskFormState extends State<AddTaskForm> {
         ),
       ),
     );
+  }
+
+  Future<void> _selectDueDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDueDate ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != _selectedDueDate) {
+      setState(() {
+        _selectedDueDate = picked;
+      });
+    }
   }
 }
