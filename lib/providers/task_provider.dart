@@ -139,8 +139,4 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       print('error moving task: $e');
     }
   }
-
-  Future<void> checkDueDatesAndNotify() async {
-    await NotificationService.scheduleAllTaskReminders(state);
-  }
 }
