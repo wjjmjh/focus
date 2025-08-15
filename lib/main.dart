@@ -22,17 +22,17 @@ void main() async {
 
   await Hive.openBox<Task>('tasks');
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(const ProviderScope(child: FocusApp()));
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+class FocusApp extends StatefulWidget {
+  const FocusApp({Key? key}) : super(key: key);
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<FocusApp> createState() => _FocusAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
