@@ -25,6 +25,12 @@ class Task extends HiveObject {
   @HiveField(6)
   final DateTime? focusStartTime;
 
+  @HiveField(7)
+  final DateTime? dueDate;
+
+  @HiveField(8)
+  final bool isDateDetected;
+
   Task({
     required this.id,
     required this.title,
@@ -33,6 +39,8 @@ class Task extends HiveObject {
     required this.status,
     Duration timeSpent = Duration.zero,
     this.focusStartTime,
+    this.dueDate,
+    this.isDateDetected = false,
   }) : timeSpentMillis = timeSpent.inMilliseconds;
 
   Duration get timeSpent => Duration(milliseconds: timeSpentMillis);
@@ -45,6 +53,8 @@ class Task extends HiveObject {
     String? status,
     Duration? timeSpent,
     DateTime? focusStartTime,
+    DateTime? dueDate,
+    bool? isDateDetected,
   }) {
     return Task(
       id: id ?? this.id,
@@ -54,6 +64,42 @@ class Task extends HiveObject {
       status: status ?? this.status,
       timeSpent: timeSpent ?? this.timeSpent,
       focusStartTime: focusStartTime ?? this.focusStartTime,
+      dueDate: dueDate ?? this.dueDate,
+      isDateDetected: isDateDetected ?? this.isDateDetected,
     );
+  }
+
+  static DateTime? extractDateFromDescription(String description) {
+    final RegExp dateRegex = RegExp(r'(\d{1,2})/(\d{1,2})/(\d{4})');
+    final Match? match = dateRegex.firstMatch(description);
+
+    if (match != null) {
+      try {
+        final int day = int.parse(match.group(1)!);
+        final int month = int.parse(match.group(2)!);
+        final int year = int.parse(match.group(3)!);
+        return DateTime(year, month, day);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  bool get isDueToday {
+    if (dueDate == null) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
+    return due == today;
+  }
+
+  bool get isDueTomorrow {
+    if (dueDate == null) return false;
+    final now = DateTime.now();
+    final tomorrow =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final due = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
+    return due == tomorrow;
   }
 }
