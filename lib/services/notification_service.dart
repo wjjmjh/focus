@@ -18,6 +18,8 @@ class NotificationService {
   static const MethodChannel _alarmChannel =
       MethodChannel('com.example.focus/alarm');
 
+  static bool _isAppInForeground = true;
+
   // ---------- Init ----------
   static Future<void> init() async {
     // Timezone (required for zonedSchedule & DST correctness)
@@ -131,8 +133,15 @@ class NotificationService {
 
   static Future<void> showImmediateNotification(
       String title, String body) async {
+    // No immediate notifications when app is in foreground
+    if (_isAppInForeground) return;
+
     final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
     await _notificationsPlugin.show(id, title, body, _details());
+  }
+
+  static void setAppLifecycleState(bool isInForeground) {
+    _isAppInForeground = isInForeground;
   }
 
   static int _deriveId(int base, int salt) {
