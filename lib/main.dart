@@ -46,6 +46,14 @@ class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    NotificationService.setAppLifecycleState(
+        state == AppLifecycleState.resumed);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'focus',
