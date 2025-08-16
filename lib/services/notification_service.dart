@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -11,6 +14,9 @@ class NotificationService {
 
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
+  static const MethodChannel _alarmChannel =
+      MethodChannel('com.example.focus/alarm');
 
   // ---------- Init ----------
   static Future<void> init() async {
@@ -107,8 +113,20 @@ class NotificationService {
 
   static Future<void> cancelTaskReminders(Task task) async {
     final baseId = (task.id.hashCode & 0x7fffffff);
-    await _notificationsPlugin.cancel(_deriveId(baseId, 1));
-    await _notificationsPlugin.cancel(_deriveId(baseId, 2));
+    final idMinus1Day = _deriveId(baseId, 1);
+    final idDueDay = _deriveId(baseId, 2);
+
+    // Cancel flutter notifications
+    await _notificationsPlugin.cancel(idMinus1Day);
+    await _notificationsPlugin.cancel(idDueDay);
+
+    // Cancel native alarms only on Android
+    if (Platform.isAndroid) {
+      await _alarmChannel
+          .invokeMethod('cancelAlarm', {'notificationId': idMinus1Day});
+      await _alarmChannel
+          .invokeMethod('cancelAlarm', {'notificationId': idDueDay});
+    }
   }
 
   static Future<void> showImmediateNotification(
@@ -133,19 +151,30 @@ class NotificationService {
     final scheduledLocal =
         DateTime(dayLocal.year, dayLocal.month, dayLocal.day, 9, 0);
     final now = DateTime.now();
-    if (!scheduledLocal.isAfter(now)) return; // avoid scheduling in the past
+    if (!scheduledLocal.isAfter(now)) return;
 
-    final tzTime = tz.TZDateTime.from(scheduledLocal, tz.local);
-    await _notificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzTime,
-      _details(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    if (Platform.isAndroid) {
+      // Use native AlarmManager for Android
+      await _alarmChannel.invokeMethod('scheduleAlarm', {
+        'title': title,
+        'body': body,
+        'timestamp': scheduledLocal.millisecondsSinceEpoch,
+        'notificationId': id,
+      });
+    } else {
+      // Use flutter_local_notifications for iOS
+      final tzTime = tz.TZDateTime.from(scheduledLocal, tz.local);
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tzTime,
+        _details(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    }
   }
 
   static NotificationDetails _details() => const NotificationDetails(
