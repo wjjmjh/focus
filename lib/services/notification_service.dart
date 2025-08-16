@@ -155,6 +155,9 @@ class NotificationService {
           channelDescription: _channelDescription,
           importance: Importance.high,
           priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+          showWhen: true,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
