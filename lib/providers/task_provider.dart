@@ -115,12 +115,8 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
         );
       } else if (currentTask.status == 'Focus' && newStatus != 'Focus') {
         // stop focusing
-        final timeSpentInFocus = currentTask.focusStartTime != null
-            ? DateTime.now().difference(currentTask.focusStartTime!)
-            : Duration.zero;
         updatedTask = currentTask.copyWith(
           status: newStatus,
-          timeSpent: currentTask.timeSpent + timeSpentInFocus,
           focusStartTime: null,
         );
       } else {
