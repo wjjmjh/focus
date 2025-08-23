@@ -25,9 +25,10 @@ class AlarmReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, "focus_task_reminders")
             .setContentTitle(title)
             .setContentText(body)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .build()
 
         notificationManager.notify(notificationId, notification)
