@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
+
 import '../models/task_model.dart';
 
 class NotificationService {
@@ -21,36 +23,49 @@ class NotificationService {
   static bool _isAppInForeground = true;
 
   // ---------- Init ----------
-  static Future<void> init() async {
-    // Timezone (required for zonedSchedule & DST correctness)
-    tzdata.initializeTimeZones();
-    tz.setLocalLocation(tz.local);
+  static Future<bool> init() async {
+    try {
+      tzdata.initializeTimeZones();
+      tz.setLocalLocation(tz.local);
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    const initSettings =
-        InitializationSettings(android: androidInit, iOS: iosInit);
-
-    await _notificationsPlugin.initialize(initSettings);
-    await _requestPermissions();
+      final permissionsGranted = await _requestPermissions();
+      return permissionsGranted;
+    } catch (e) {
+      return false;
+    }
   }
 
-  static Future<void> _requestPermissions() async {
-    // Android 13+ runtime notifications permission
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+  static Future<bool> _requestPermissions() async {
+    bool permissionsGranted = true;
 
-    // IOS explicit permission (no-op on Android)
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
+    // Android 13+ runtime notifications permission
+    if (Platform.isAndroid) {
+      final androidImplementation =
+          _notificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        final granted =
+            await androidImplementation.requestNotificationsPermission();
+        permissionsGranted = granted ?? false;
+      }
+    }
+
+    // iOS explicit permission
+    if (Platform.isIOS) {
+      final iosImplementation =
+          _notificationsPlugin.resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      if (iosImplementation != null) {
+        final granted = await iosImplementation.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        permissionsGranted = granted ?? false;
+      }
+    }
+
+    return permissionsGranted;
   }
 
   // ---------- Public APIs ----------
@@ -62,7 +77,10 @@ class NotificationService {
     await cancelTaskReminders(task);
 
     final now = DateTime.now();
-    if (due.isBefore(now)) return; // nothing to schedule in the past
+
+    if (due.isBefore(now) && !_isSameDay(due, now)) {
+      return;
+    }
 
     final baseId = (task.id.hashCode & 0x7fffffff);
     final idMinus1Day = _deriveId(baseId, 1);
@@ -76,8 +94,8 @@ class NotificationService {
     final dayBefore = DateTime(due.year, due.month, due.day)
         .subtract(const Duration(days: 1));
     if (!_isSameDay(due, now)) {
-      // show immediate if today is the day-before
-      if (_isSameDay(dayBefore, now)) {
+      // show immediate if today is the day-before (but only if app is in background)
+      if (_isSameDay(dayBefore, now) && !_isAppInForeground) {
         await showImmediateNotification(
             'Task Due Tomorrow', '${task.title}\nDue: ${_formatDate(due)}');
       } else if (dayBefore.isAfter(now)) {
@@ -90,18 +108,13 @@ class NotificationService {
       }
     }
 
-    // Due day at 9am local
-    if (_isSameDay(due, now)) {
-      await showImmediateNotification(
-          dueTodayTitle, '${task.title}\nDue Today!');
-    } else {
-      await _zonedAtNineAM(
-        idDueDay,
-        dueTodayTitle,
-        '${task.title}\nDue Today!',
-        DateTime(due.year, due.month, due.day),
-      );
-    }
+    // Due day at scheduled time
+    await _zonedAtNineAM(
+      idDueDay,
+      dueTodayTitle,
+      '${task.title}\nDue Today!',
+      DateTime(due.year, due.month, due.day),
+    );
   }
 
   static Future<void> scheduleAllTaskReminders(List<Task> tasks) async {
@@ -133,11 +146,12 @@ class NotificationService {
 
   static Future<void> showImmediateNotification(
       String title, String body) async {
-    // No immediate notifications when app is in foreground
-    if (_isAppInForeground) return;
-
-    final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
-    await _notificationsPlugin.show(id, title, body, _details());
+    try {
+      final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+      await _notificationsPlugin.show(id, title, body, _details());
+    } catch (e) {
+      // ...
+    }
   }
 
   static void setAppLifecycleState(bool isInForeground) {
@@ -157,32 +171,36 @@ class NotificationService {
     String body,
     DateTime dayLocal,
   ) async {
-    final scheduledLocal =
-        DateTime(dayLocal.year, dayLocal.month, dayLocal.day, 9, 0);
-    final now = DateTime.now();
-    if (!scheduledLocal.isAfter(now)) return;
+    try {
+      final scheduledLocal =
+          DateTime(dayLocal.year, dayLocal.month, dayLocal.day, 9, 0);
+      final now = DateTime.now();
+      if (!scheduledLocal.isAfter(now)) return;
 
-    if (Platform.isAndroid) {
-      // Use native AlarmManager for Android
-      await _alarmChannel.invokeMethod('scheduleAlarm', {
-        'title': title,
-        'body': body,
-        'timestamp': scheduledLocal.millisecondsSinceEpoch,
-        'notificationId': id,
-      });
-    } else {
-      // Use flutter_local_notifications for iOS
-      final tzTime = tz.TZDateTime.from(scheduledLocal, tz.local);
-      await _notificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzTime,
-        _details(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
+      if (Platform.isAndroid) {
+        // Use native AlarmManager for Android
+        await _alarmChannel.invokeMethod('scheduleAlarm', {
+          'title': title,
+          'body': body,
+          'timestamp': scheduledLocal.millisecondsSinceEpoch,
+          'notificationId': id,
+        });
+      } else {
+        // Use flutter_local_notifications for iOS
+        final tzTime = tz.TZDateTime.from(scheduledLocal, tz.local);
+        await _notificationsPlugin.zonedSchedule(
+          id,
+          title,
+          body,
+          tzTime,
+          _details(),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
+    } catch (e) {
+      // ...
     }
   }
 
