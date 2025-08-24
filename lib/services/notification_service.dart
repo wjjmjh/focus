@@ -119,15 +119,6 @@ class NotificationService {
     );
   }
 
-  static Future<void> scheduleAllTaskReminders(List<Task> tasks) async {
-    await _notificationsPlugin.cancelAll();
-    for (final t in tasks) {
-      if (t.dueDate != null && t.status != 'Done') {
-        await scheduleTaskReminders(t);
-      }
-    }
-  }
-
   static Future<void> cancelTaskReminders(Task task) async {
     final baseId = (task.id.hashCode & 0x7fffffff);
     final idMinus1Day = _deriveId(baseId, 1);

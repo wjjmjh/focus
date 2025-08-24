@@ -30,7 +30,6 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
     try {
       final tasks = await _localStorageService.getTasks();
       state = tasks;
-      await NotificationService.scheduleAllTaskReminders(tasks);
     } catch (e) {
       print('error loading tasks: $e');
       state = [];
