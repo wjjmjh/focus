@@ -93,19 +93,21 @@ class NotificationService {
     // One day before at 9am local
     final dayBefore = DateTime(due.year, due.month, due.day)
         .subtract(const Duration(days: 1));
-    if (!_isSameDay(due, now)) {
-      // show immediate if today is the day-before (but only if app is in background)
-      if (_isSameDay(dayBefore, now) && !_isAppInForeground) {
-        await showImmediateNotification(
-            'Task Due Tomorrow', '${task.title}\nDue: ${_formatDate(due)}');
-      } else if (dayBefore.isAfter(now)) {
-        await _zonedAtNineAM(
-          idMinus1Day,
-          dueTomorrowTitle,
-          '${task.title}\nDue: ${_formatDate(due)}',
-          dayBefore,
-        );
-      }
+
+    if (_isSameDay(dayBefore, now)) {
+      await _zonedAtNineAM(
+        idMinus1Day,
+        dueTomorrowTitle,
+        '${task.title}\nDue: ${_formatDate(due)}',
+        dayBefore,
+      );
+    } else if (dayBefore.isAfter(now)) {
+      await _zonedAtNineAM(
+        idMinus1Day,
+        dueTomorrowTitle,
+        '${task.title}\nDue: ${_formatDate(due)}',
+        dayBefore,
+      );
     }
 
     // Due day at scheduled time
