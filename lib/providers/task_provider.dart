@@ -138,4 +138,16 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       print('error moving task: $e');
     }
   }
+
+  Future<void> resetFocusTime(Task task) async {
+    try {
+      final updatedTask = task.copyWith(
+        timeSpent: Duration.zero,
+        focusStartTime: task.status == 'Focus' ? DateTime.now() : null,
+      );
+      await updateTask(updatedTask);
+    } catch (e) {
+      print('error resetting focus time: $e');
+    }
+  }
 }

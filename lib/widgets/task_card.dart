@@ -43,6 +43,8 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     } else if (isFocusedNow &&
         oldWidget.task.focusStartTime != widget.task.focusStartTime) {
       _elapsedVN?.value = _computeElapsed();
+    } else if (oldWidget.task.timeSpent != widget.task.timeSpent) {
+      _elapsedVN?.value = _computeElapsed();
     }
   }
 
@@ -257,11 +259,16 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                           (_elapsedVN?.value ?? Duration.zero) >
                               Duration.zero) ...[
                         if (task.dueDate == null) const Spacer(),
-                        if (_elapsedVN != null)
+                        if (_elapsedVN != null) ...[
                           _TimerChip(
                             isRunning: _isFocused(task),
                             elapsedVN: _elapsedVN!,
                           ),
+                          const SizedBox(width: 8.0),
+                          _ResetButton(
+                            onPressed: () => _showResetConfirmation(context),
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -321,6 +328,32 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             child: const Text('Delete'),
             onPressed: () async {
               await ref.read(taskListProvider.notifier).deleteTask(widget.task);
+              if (mounted) Navigator.of(context).maybePop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Reset Focus Time'),
+        content: const Text(
+            'Are you sure you want to reset the focus time for this task to zero?'),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          TextButton(
+            child: const Text('Reset'),
+            onPressed: () async {
+              await ref
+                  .read(taskListProvider.notifier)
+                  .resetFocusTime(widget.task);
               if (mounted) Navigator.of(context).maybePop();
             },
           ),
@@ -479,6 +512,35 @@ class _TimerChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ResetButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _ResetButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.all(4.0),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade900.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(6.0),
+          border: Border.all(
+            color: Colors.orange.shade400.withOpacity(0.4),
+            width: 1.0,
+          ),
+        ),
+        child: Icon(
+          Icons.refresh,
+          color: Colors.orange.shade400,
+          size: 12.0,
+        ),
       ),
     );
   }
