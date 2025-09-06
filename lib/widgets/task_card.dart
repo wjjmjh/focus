@@ -88,7 +88,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     final isDone = task.status == 'Done';
     final priority = int.tryParse(task.priority) ?? 3;
     final isHighPriority = priority >= 4;
-    final priorityColor = _priorityColor(priority);
+    final priorityColor = _priorityColor(priority, isDone);
     final dueColor = _dueDateColor(task.dueDate, isDone);
 
     return ValueListenableBuilder<String?>(
@@ -202,8 +202,6 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             fontSize: 16.0,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey.shade100,
-                            decoration:
-                                isDone ? TextDecoration.lineThrough : null,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -263,11 +261,14 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                           _TimerChip(
                             isRunning: _isFocused(task),
                             elapsedVN: _elapsedVN!,
+                            isDone: isDone,
                           ),
-                          const SizedBox(width: 8.0),
-                          _ResetButton(
-                            onPressed: () => _showResetConfirmation(context),
-                          ),
+                          if (!isDone) ...[
+                            const SizedBox(width: 8.0),
+                            _ResetButton(
+                              onPressed: () => _showResetConfirmation(context),
+                            ),
+                          ],
                         ],
                       ],
                     ],
@@ -281,7 +282,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     );
   }
 
-  static Color _priorityColor(int p) {
+  static Color _priorityColor(int p, bool isDone) {
+    if (isDone) return Colors.grey.shade600;
+
     switch (p) {
       case 5:
         return Colors.redAccent.shade200;
@@ -471,8 +474,13 @@ class _DueChip extends StatelessWidget {
 class _TimerChip extends StatelessWidget {
   final bool isRunning;
   final ValueNotifier<Duration> elapsedVN;
+  final bool isDone;
 
-  const _TimerChip({required this.isRunning, required this.elapsedVN});
+  const _TimerChip({
+    required this.isRunning,
+    required this.elapsedVN,
+    this.isDone = false,
+  });
 
   static String _fmt(Duration d) {
     String two(int n) => n.toString().padLeft(2, '0');
@@ -481,13 +489,18 @@ class _TimerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chipColor = isDone ? Colors.grey.shade600 : Colors.green.shade400;
+    final backgroundColor = isDone
+        ? Colors.grey.shade800.withOpacity(0.15)
+        : Colors.green.shade900.withOpacity(0.15);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
-        color: Colors.green.shade900.withOpacity(0.15),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8.0),
         border: Border.all(
-          color: Colors.green.shade400.withOpacity(0.4),
+          color: chipColor.withOpacity(0.4),
           width: 1.0,
         ),
       ),
@@ -496,7 +509,7 @@ class _TimerChip extends StatelessWidget {
         children: [
           Icon(
             isRunning ? Icons.play_circle_filled : Icons.timer,
-            color: Colors.green.shade400,
+            color: chipColor,
             size: 12.0,
           ),
           const SizedBox(width: 4.0),
@@ -507,7 +520,7 @@ class _TimerChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.0,
                 fontWeight: FontWeight.w600,
-                color: Colors.green.shade400,
+                color: chipColor,
               ),
             ),
           ),
