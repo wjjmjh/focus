@@ -263,7 +263,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             elapsedVN: _elapsedVN!,
                             isDone: isDone,
                           ),
-                          if (!isDone) ...[
+                          if (!isDone &&
+                              (_elapsedVN?.value ?? Duration.zero) >
+                                  Duration.zero) ...[
                             const SizedBox(width: 8.0),
                             _ResetButton(
                               onPressed: () => _showResetConfirmation(context),
