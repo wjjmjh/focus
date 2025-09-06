@@ -87,7 +87,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     final priority = int.tryParse(task.priority) ?? 3;
     final isHighPriority = priority >= 4;
     final priorityColor = _priorityColor(priority);
-    final dueColor = _dueDateColor(task.dueDate);
+    final dueColor = _dueDateColor(task.dueDate, isDone);
 
     return ValueListenableBuilder<String?>(
       valueListenable: _dragStateNotifier,
@@ -291,8 +291,10 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     }
   }
 
-  static Color _dueDateColor(DateTime? due) {
+  static Color _dueDateColor(DateTime? due, bool isDone) {
     if (due == null) return Colors.grey.shade400;
+    if (isDone) return Colors.grey.shade400;
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final d = DateTime(due.year, due.month, due.day);
