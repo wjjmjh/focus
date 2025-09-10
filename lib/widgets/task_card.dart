@@ -6,7 +6,8 @@ import '../providers/task_provider.dart';
 import 'add_task_form.dart';
 import 'kanban_board.dart';
 
-final ValueNotifier<String?> _dragStateNotifier = ValueNotifier<String?>(null);
+final ValueNotifier<Set<String>> _dragStateNotifier =
+    ValueNotifier<Set<String>>({});
 
 class TaskCard extends ConsumerStatefulWidget {
   final Task task;
@@ -92,10 +93,10 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     final priorityColor = _priorityColor(priority, isDone);
     final dueColor = _dueDateColor(task.dueDate, isDone);
 
-    return ValueListenableBuilder<String?>(
+    return ValueListenableBuilder<Set<String>>(
       valueListenable: _dragStateNotifier,
-      builder: (context, draggingId, _) {
-        if (draggingId == task.id) return const SizedBox.shrink();
+      builder: (context, draggingIds, _) {
+        if (draggingIds.contains(task.id)) return const SizedBox.shrink();
 
         return GestureDetector(
           onTap: () => _showEditTaskForm(context),
@@ -108,7 +109,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             ),
             childWhenDragging: const SizedBox.shrink(),
             onDragStarted: () {
-              _dragStateNotifier.value = task.id;
+              _dragStateNotifier.value = {..._dragStateNotifier.value, task.id};
               isDraggingGlobally.value = true;
               if (_isFocused(task)) {
                 _stopTimer();
@@ -122,14 +123,22 @@ class _TaskCardState extends ConsumerState<TaskCard> {
               dragPositionGlobally.value = null;
             },
             onDragCompleted: () {
-              _dragStateNotifier.value = null;
-              isDraggingGlobally.value = false;
-              dragPositionGlobally.value = null;
+              final newSet = Set<String>.from(_dragStateNotifier.value);
+              newSet.remove(task.id);
+              _dragStateNotifier.value = newSet;
+              if (newSet.isEmpty) {
+                isDraggingGlobally.value = false;
+                dragPositionGlobally.value = null;
+              }
             },
             onDraggableCanceled: (_, __) {
-              _dragStateNotifier.value = null;
-              isDraggingGlobally.value = false;
-              dragPositionGlobally.value = null;
+              final newSet = Set<String>.from(_dragStateNotifier.value);
+              newSet.remove(task.id);
+              _dragStateNotifier.value = newSet;
+              if (newSet.isEmpty) {
+                isDraggingGlobally.value = false;
+                dragPositionGlobally.value = null;
+              }
               if (_isFocused(task)) _startTimer();
             },
             child: _buildCard(
