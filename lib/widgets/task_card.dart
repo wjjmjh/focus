@@ -387,22 +387,29 @@ class _TaskCardState extends ConsumerState<TaskCard> {
           topRight: Radius.circular(10),
         ),
       ),
-      builder: (context) => AddTaskForm(
-        addTaskHandler: (String title, String description, int priority,
-            DateTime? dueDate) {
-          final updatedTask = widget.task.copyWith(
-            title: title,
-            description: description,
-            priority: priority.toString(),
-            dueDate: dueDate,
-            isDateDetected: dueDate != null,
-          );
-          ref.read(taskListProvider.notifier).updateTask(updatedTask);
-        },
-        initialTitle: widget.task.title,
-        initialDescription: widget.task.description,
-        initialPriority: int.tryParse(widget.task.priority) ?? 3,
-        initialDueDate: widget.task.dueDate,
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: SingleChildScrollView(
+          child: AddTaskForm(
+            addTaskHandler: (String title, String description, int priority,
+                DateTime? dueDate) {
+              final updatedTask = widget.task.copyWith(
+                title: title,
+                description: description,
+                priority: priority.toString(),
+                dueDate: dueDate,
+                isDateDetected: dueDate != null,
+              );
+              ref.read(taskListProvider.notifier).updateTask(updatedTask);
+            },
+            initialTitle: widget.task.title,
+            initialDescription: widget.task.description,
+            initialPriority: int.tryParse(widget.task.priority) ?? 3,
+            initialDueDate: widget.task.dueDate,
+          ),
+        ),
       ),
     );
   }
