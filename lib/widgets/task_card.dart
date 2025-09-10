@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
 import 'add_task_form.dart';
+import 'kanban_board.dart';
 
 final ValueNotifier<String?> _dragStateNotifier = ValueNotifier<String?>(null);
 
@@ -108,6 +109,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             childWhenDragging: const SizedBox.shrink(),
             onDragStarted: () {
               _dragStateNotifier.value = task.id;
+              isDraggingGlobally.value = true;
               if (_isFocused(task)) {
                 _stopTimer();
                 ref
@@ -115,14 +117,20 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                     .saveFocusTimeBeforeDrag(task);
               }
             },
+            onDragEnd: (_) {
+              isDraggingGlobally.value = false;
+              dragPositionGlobally.value = null;
+            },
             onDragCompleted: () {
               _dragStateNotifier.value = null;
+              isDraggingGlobally.value = false;
+              dragPositionGlobally.value = null;
             },
             onDraggableCanceled: (_, __) {
               _dragStateNotifier.value = null;
-              if (_isFocused(task)) {
-                _startTimer();
-              }
+              isDraggingGlobally.value = false;
+              dragPositionGlobally.value = null;
+              if (_isFocused(task)) _startTimer();
             },
             child: _buildCard(
                 context, isDone, isHighPriority, priorityColor, dueColor),
