@@ -171,37 +171,34 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       width: 280,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(
+          color: _isFocused(task)
+              ? Colors.green.shade400
+              : priorityColor.withOpacity(0.3),
+          width: _isFocused(task) ? 2.0 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 20.0,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.1),
+            blurRadius: 1.0,
+            spreadRadius: 0,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(10.0),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
           child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(
-                color: _isFocused(task)
-                    ? Colors.green.shade400
-                    : priorityColor.withOpacity(0.3),
-                width: _isFocused(task) ? 2.0 : 1.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20.0,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.1),
-                  blurRadius: 1.0,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
             child: Row(
               children: [
                 if (isHighPriority)
