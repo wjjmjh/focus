@@ -170,6 +170,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     return Container(
       width: 280,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12.0),
         child: BackdropFilter(
