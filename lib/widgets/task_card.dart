@@ -195,129 +195,126 @@ class _TaskCardState extends ConsumerState<TaskCard> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10.0),
+        borderRadius: BorderRadius.circular(12.0),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-          child: Container(
-            child: Row(
-              children: [
-                if (isHighPriority)
-                  Container(
-                    width: 4.0,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [priorityColor, priorityColor.withOpacity(0.6)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12.0),
-                        bottomLeft: Radius.circular(12.0),
-                      ),
+          child: Row(
+            children: [
+              if (isHighPriority)
+                Container(
+                  width: 4.0,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [priorityColor, priorityColor.withOpacity(0.6)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
-                  ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: isHighPriority ? 12.0 : 16.0,
-                      right: 16.0,
-                      top: 16.0,
-                      bottom: 16.0,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                task.title,
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade100,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _PriorityChip(
-                                  priorityText: 'P${task.priority}',
-                                  color: priorityColor,
-                                ),
-                                const SizedBox(width: 8.0),
-                                GestureDetector(
-                                  onTap: () => _confirmDelete(context),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4.0),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.red.shade900.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(6.0),
-                                    ),
-                                    child: Icon(
-                                      Icons.delete_outline,
-                                      color: Colors.red.shade300,
-                                      size: 16.0,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        if (task.description.isNotEmpty) ...[
-                          const SizedBox(height: 8.0),
-                          Text(
-                            task.description,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              color: Colors.grey.shade400,
-                              height: 1.3,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 12.0),
-                        Row(
-                          children: [
-                            if (task.dueDate != null) ...[
-                              _DueChip(dueDate: task.dueDate!, color: dueColor),
-                              const Spacer(),
-                            ],
-                            if (task.focusStartTime != null ||
-                                (_elapsedVN?.value ?? Duration.zero) >
-                                    Duration.zero) ...[
-                              if (task.dueDate == null) const Spacer(),
-                              if (_elapsedVN != null) ...[
-                                _TimerChip(
-                                  isRunning: _isFocused(task),
-                                  elapsedVN: _elapsedVN!,
-                                  isDone: isDone,
-                                ),
-                                if (!isDone &&
-                                    (_elapsedVN?.value ?? Duration.zero) >
-                                        Duration.zero) ...[
-                                  const SizedBox(width: 8.0),
-                                  _ResetButton(
-                                    onPressed: () =>
-                                        _showResetConfirmation(context),
-                                  ),
-                                ],
-                              ],
-                            ],
-                          ],
-                        ),
-                      ],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12.0),
+                      bottomLeft: Radius.circular(12.0),
                     ),
                   ),
                 ),
-              ],
-            ),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: isHighPriority ? 12.0 : 16.0,
+                    right: 16.0,
+                    top: 16.0,
+                    bottom: 16.0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: TextStyle(
+                                fontSize: 16.0,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade100,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _PriorityChip(
+                                priorityText: 'P${task.priority}',
+                                color: priorityColor,
+                              ),
+                              const SizedBox(width: 8.0),
+                              GestureDetector(
+                                onTap: () => _confirmDelete(context),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade900.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6.0),
+                                  ),
+                                  child: Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red.shade300,
+                                    size: 16.0,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      if (task.description.isNotEmpty) ...[
+                        const SizedBox(height: 8.0),
+                        Text(
+                          task.description,
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.grey.shade400,
+                            height: 1.3,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 12.0),
+                      Row(
+                        children: [
+                          if (task.dueDate != null) ...[
+                            _DueChip(dueDate: task.dueDate!, color: dueColor),
+                            const Spacer(),
+                          ],
+                          if (task.focusStartTime != null ||
+                              (_elapsedVN?.value ?? Duration.zero) >
+                                  Duration.zero) ...[
+                            if (task.dueDate == null) const Spacer(),
+                            if (_elapsedVN != null) ...[
+                              _TimerChip(
+                                isRunning: _isFocused(task),
+                                elapsedVN: _elapsedVN!,
+                                isDone: isDone,
+                              ),
+                              if (!isDone &&
+                                  (_elapsedVN?.value ?? Duration.zero) >
+                                      Duration.zero) ...[
+                                const SizedBox(width: 8.0),
+                                _ResetButton(
+                                  onPressed: () =>
+                                      _showResetConfirmation(context),
+                                ),
+                              ],
+                            ],
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
