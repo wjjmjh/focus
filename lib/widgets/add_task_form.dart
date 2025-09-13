@@ -17,7 +17,7 @@ class AddTaskForm extends StatefulWidget {
   });
 
   @override
-  _AddTaskFormState createState() => _AddTaskFormState();
+  State<AddTaskForm> createState() => _AddTaskFormState();
 }
 
 class _AddTaskFormState extends State<AddTaskForm> {
@@ -58,16 +58,24 @@ class _AddTaskFormState extends State<AddTaskForm> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black54,
+                  color: Colors.white,
                 ),
               ),
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 10.0),
                 child: TextFormField(
                   autofocus: true,
+                  style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     hintText: 'Task Title',
+                    hintStyle: TextStyle(color: Colors.grey),
                     border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.green),
+                    ),
                   ),
                   validator: (value) {
                     if (value?.isEmpty ?? true) {
@@ -81,9 +89,17 @@ class _AddTaskFormState extends State<AddTaskForm> {
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 10.0),
                 child: TextFormField(
+                  style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     hintText: 'Task Description',
+                    hintStyle: TextStyle(color: Colors.grey),
                     border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.green),
+                    ),
                   ),
                   controller: _descriptionController,
                 ),
@@ -95,8 +111,16 @@ class _AddTaskFormState extends State<AddTaskForm> {
                   child: InputDecorator(
                     decoration: const InputDecoration(
                       hintText: 'Due Date (optional)',
+                      hintStyle: TextStyle(color: Colors.grey),
                       border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.calendar_today),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.green),
+                      ),
+                      suffixIcon:
+                          Icon(Icons.calendar_today, color: Colors.grey),
                     ),
                     child: Text(
                       _selectedDueDate == null
@@ -105,7 +129,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
                       style: TextStyle(
                         color: _selectedDueDate == null
                             ? Colors.grey
-                            : Colors.black,
+                            : Colors.white,
                       ),
                     ),
                   ),
@@ -113,14 +137,24 @@ class _AddTaskFormState extends State<AddTaskForm> {
               ),
               DropdownButtonFormField<int>(
                 value: _selectedPriority,
+                style: const TextStyle(color: Colors.white),
+                dropdownColor: Colors.grey.shade800,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Priority',
+                  labelStyle: TextStyle(color: Colors.white),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.green),
+                  ),
                 ),
                 items: List.generate(5, (index) {
                   return DropdownMenuItem<int>(
                     value: index + 1,
-                    child: Text('${index + 1}'),
+                    child: Text('${index + 1}',
+                        style: const TextStyle(color: Colors.white)),
                   );
                 }),
                 onChanged: (value) {
@@ -129,19 +163,28 @@ class _AddTaskFormState extends State<AddTaskForm> {
                   });
                 },
               ),
-              ElevatedButton(
-                onPressed: () {
-                  if (_titleController.text.isNotEmpty) {
-                    widget.addTaskHandler(
-                      _titleController.text.trim(),
-                      _descriptionController.text.trim(),
-                      _selectedPriority,
-                      _selectedDueDate,
-                    );
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: Text(widget.initialTitle != null ? 'Update' : 'Add'),
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
+                  ),
+                  onPressed: () {
+                    if (_titleController.text.isNotEmpty) {
+                      widget.addTaskHandler(
+                        _titleController.text.trim(),
+                        _descriptionController.text.trim(),
+                        _selectedPriority,
+                        _selectedDueDate,
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Text(widget.initialTitle != null ? 'Update' : 'Add'),
+                ),
               ),
             ],
           ),
@@ -156,6 +199,32 @@ class _AddTaskFormState extends State<AddTaskForm> {
       initialDate: _selectedDueDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 1)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.white,
+              onPrimary: Colors.black,
+              surface: Colors.black,
+              onSurface: Colors.white,
+              secondary: Colors.white,
+              onSecondary: Colors.black,
+              surfaceVariant: Colors.black,
+              onSurfaceVariant: Colors.white,
+              outline: Colors.white,
+            ),
+            dialogBackgroundColor: Colors.black,
+            canvasColor: Colors.black,
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.black,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedDueDate) {
       setState(() {

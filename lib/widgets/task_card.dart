@@ -22,6 +22,7 @@ class TaskCard extends ConsumerStatefulWidget {
 class _TaskCardState extends ConsumerState<TaskCard> {
   Timer? _timer;
   ValueNotifier<Duration>? _elapsedVN;
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -98,51 +99,58 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       builder: (context, draggingIds, _) {
         if (draggingIds.contains(task.id)) return const SizedBox.shrink();
 
-        return GestureDetector(
-          onTap: () => _showEditTaskForm(context),
-          child: LongPressDraggable<Task>(
-            data: task,
-            feedback: Material(
-              color: Colors.transparent,
+        return MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: GestureDetector(
+            onTap: () => _showEditTaskForm(context),
+            child: LongPressDraggable<Task>(
+              data: task,
+              feedback: Material(
+                color: Colors.transparent,
+                child: _buildCard(
+                    context, isDone, isHighPriority, priorityColor, dueColor),
+              ),
+              childWhenDragging: const SizedBox.shrink(),
+              onDragStarted: () {
+                _dragStateNotifier.value = {
+                  ..._dragStateNotifier.value,
+                  task.id
+                };
+                isDraggingGlobally.value = true;
+                if (_isFocused(task)) {
+                  _stopTimer();
+                  ref
+                      .read(taskListProvider.notifier)
+                      .saveFocusTimeBeforeDrag(task);
+                }
+              },
+              onDragEnd: (_) {
+                isDraggingGlobally.value = false;
+                dragPositionGlobally.value = null;
+              },
+              onDragCompleted: () {
+                final newSet = Set<String>.from(_dragStateNotifier.value);
+                newSet.remove(task.id);
+                _dragStateNotifier.value = newSet;
+                if (newSet.isEmpty) {
+                  isDraggingGlobally.value = false;
+                  dragPositionGlobally.value = null;
+                }
+              },
+              onDraggableCanceled: (_, __) {
+                final newSet = Set<String>.from(_dragStateNotifier.value);
+                newSet.remove(task.id);
+                _dragStateNotifier.value = newSet;
+                if (newSet.isEmpty) {
+                  isDraggingGlobally.value = false;
+                  dragPositionGlobally.value = null;
+                }
+                if (_isFocused(task)) _startTimer();
+              },
               child: _buildCard(
                   context, isDone, isHighPriority, priorityColor, dueColor),
             ),
-            childWhenDragging: const SizedBox.shrink(),
-            onDragStarted: () {
-              _dragStateNotifier.value = {..._dragStateNotifier.value, task.id};
-              isDraggingGlobally.value = true;
-              if (_isFocused(task)) {
-                _stopTimer();
-                ref
-                    .read(taskListProvider.notifier)
-                    .saveFocusTimeBeforeDrag(task);
-              }
-            },
-            onDragEnd: (_) {
-              isDraggingGlobally.value = false;
-              dragPositionGlobally.value = null;
-            },
-            onDragCompleted: () {
-              final newSet = Set<String>.from(_dragStateNotifier.value);
-              newSet.remove(task.id);
-              _dragStateNotifier.value = newSet;
-              if (newSet.isEmpty) {
-                isDraggingGlobally.value = false;
-                dragPositionGlobally.value = null;
-              }
-            },
-            onDraggableCanceled: (_, __) {
-              final newSet = Set<String>.from(_dragStateNotifier.value);
-              newSet.remove(task.id);
-              _dragStateNotifier.value = newSet;
-              if (newSet.isEmpty) {
-                isDraggingGlobally.value = false;
-                dragPositionGlobally.value = null;
-              }
-              if (_isFocused(task)) _startTimer();
-            },
-            child: _buildCard(
-                context, isDone, isHighPriority, priorityColor, dueColor),
           ),
         );
       },
@@ -164,22 +172,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       decoration: BoxDecoration(
         color: Colors.grey.shade900,
         borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8.0,
-            offset: const Offset(0, 4),
-          ),
-          if (isHighPriority)
-            BoxShadow(
-              color: priorityColor.withOpacity(0.3),
-              blurRadius: 12.0,
-              offset: const Offset(0, 0),
-            ),
-        ],
         border: Border.all(
-          color: priorityColor.withOpacity(isHighPriority ? 0.8 : 0.5),
-          width: isHighPriority ? 2.0 : 1.5,
+          color: _isFocused(task) ? Colors.green.shade400 : priorityColor,
+          width: _isFocused(task) ? 2.0 : 1.0,
         ),
       ),
       child: Row(
@@ -228,8 +223,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _PriorityChip(
-                              priorityText: 'P${task.priority}',
-                              color: priorityColor),
+                            priorityText: 'P${task.priority}',
+                            color: priorityColor,
+                          ),
                           const SizedBox(width: 8.0),
                           GestureDetector(
                             onTap: () => _confirmDelete(context),
@@ -339,14 +335,38 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete Task'),
-        content: const Text('Are you sure you want to delete this task?'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.white, width: 1),
+        ),
+        title: const Text(
+          'Delete Task',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this task?',
+          style: TextStyle(color: Colors.white),
+        ),
         actions: <Widget>[
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              side: const BorderSide(color: Colors.white, width: 1),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Cancel'),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Delete'),
             onPressed: () async {
               await ref.read(taskListProvider.notifier).deleteTask(widget.task);
@@ -362,15 +382,38 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Reset Focus Time'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.white, width: 1),
+        ),
+        title: const Text(
+          'Reset Focus Time',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
         content: const Text(
-            'Are you sure you want to reset the focus time for this task to zero?'),
+          'Are you sure you want to reset the focus time for this task to zero?',
+          style: TextStyle(color: Colors.white),
+        ),
         actions: <Widget>[
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              side: const BorderSide(color: Colors.white, width: 1),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Cancel'),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Reset'),
             onPressed: () async {
               await ref
@@ -388,12 +431,12 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade900,
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(10),
-          topRight: Radius.circular(10),
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
         ),
       ),
       builder: (context) => ConstrainedBox(

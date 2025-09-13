@@ -58,11 +58,18 @@ class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: 'focus',
       theme: ThemeData(
+        fontFamily: 'Poppins',
         primarySwatch: Colors.grey,
         primaryColor: Colors.black,
-        colorScheme: const ColorScheme.light(
+        colorScheme: const ColorScheme.dark(
           primary: Colors.black,
-          secondary: Colors.black,
+          secondary: Colors.white,
+          surface: Colors.black,
+          background: Colors.black,
+          onPrimary: Colors.white,
+          onSecondary: Colors.black,
+          onSurface: Colors.white,
+          onBackground: Colors.white,
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(

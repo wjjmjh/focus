@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/task_provider.dart';
 import '../widgets/kanban_board.dart';
+import '../widgets/animated_background.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -12,13 +13,15 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('focus')),
-      body: localStorageServiceAsync.when(
-        data: (_) {
-          final tasks = ref.watch(taskListProvider);
-          return KanbanBoard(tasks: tasks);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(child: Text('error: $error')),
+      body: AnimatedBackground(
+        child: localStorageServiceAsync.when(
+          data: (_) {
+            final tasks = ref.watch(taskListProvider);
+            return KanbanBoard(tasks: tasks);
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Center(child: Text('error: $error')),
+        ),
       ),
     );
   }
