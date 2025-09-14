@@ -71,10 +71,10 @@ class _AddTaskFormState extends State<AddTaskForm> {
                     hintStyle: TextStyle(color: Colors.grey),
                     border: OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey),
+                      borderSide: BorderSide(color: Colors.white),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green),
+                      borderSide: BorderSide(color: Colors.white),
                     ),
                   ),
                   validator: (value) {
@@ -95,10 +95,10 @@ class _AddTaskFormState extends State<AddTaskForm> {
                     hintStyle: TextStyle(color: Colors.grey),
                     border: OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey),
+                      borderSide: BorderSide(color: Colors.white),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green),
+                      borderSide: BorderSide(color: Colors.white),
                     ),
                   ),
                   controller: _descriptionController,
@@ -114,17 +114,17 @@ class _AddTaskFormState extends State<AddTaskForm> {
                       hintStyle: TextStyle(color: Colors.grey),
                       border: OutlineInputBorder(),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
+                        borderSide: BorderSide(color: Colors.white),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.green),
+                        borderSide: BorderSide(color: Colors.white),
                       ),
                       suffixIcon:
-                          Icon(Icons.calendar_today, color: Colors.grey),
+                          Icon(Icons.calendar_today, color: Colors.white),
                     ),
                     child: Text(
                       _selectedDueDate == null
-                          ? 'Select due date'
+                          ? 'Select Due Date'
                           : '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}',
                       style: TextStyle(
                         color: _selectedDueDate == null
@@ -144,10 +144,10 @@ class _AddTaskFormState extends State<AddTaskForm> {
                   labelText: 'Priority',
                   labelStyle: TextStyle(color: Colors.white),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: BorderSide(color: Colors.white),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.green),
+                    borderSide: BorderSide(color: Colors.white),
                   ),
                 ),
                 items: List.generate(5, (index) {
@@ -167,8 +167,8 @@ class _AddTaskFormState extends State<AddTaskForm> {
                 padding: const EdgeInsets.only(top: 16.0),
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 12),
                   ),

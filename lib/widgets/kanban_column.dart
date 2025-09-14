@@ -253,7 +253,7 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: Colors.black,
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
