@@ -203,8 +203,8 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
         ];
       case 'Focus':
         return [
-          Colors.red.shade800,
-          Colors.red.shade900,
+          const Color(0xFFFF8C00),
+          const Color(0xFF8B4513),
         ];
       case 'Done':
         return [
@@ -226,7 +226,7 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
       case 'Ready':
         return isHovered ? Colors.blue.shade600 : Colors.blue.shade700;
       case 'Focus':
-        return isHovered ? Colors.red.shade600 : Colors.red.shade700;
+        return isHovered ? const Color(0xFFFFA500) : const Color(0xFFFF8C00);
       case 'Done':
         return isHovered ? Colors.green.shade600 : Colors.green.shade700;
       default:
@@ -241,7 +241,7 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
       case 'Ready':
         return Colors.blue.shade700.withOpacity(0.5);
       case 'Focus':
-        return Colors.red.shade700.withOpacity(0.5);
+        return const Color(0xFFFF8C00).withOpacity(0.6);
       case 'Done':
         return Colors.green.shade700.withOpacity(0.5);
       default:
