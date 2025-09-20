@@ -2,6 +2,8 @@ import 'package:hive/hive.dart';
 
 part 'task_model.g.dart';
 
+const Object _undefined = Object();
+
 @HiveType(typeId: 0)
 class Task extends HiveObject {
   @HiveField(0)
@@ -53,7 +55,7 @@ class Task extends HiveObject {
     String? status,
     Duration? timeSpent,
     DateTime? focusStartTime,
-    DateTime? dueDate,
+    Object? dueDate = _undefined,
     bool? isDateDetected,
   }) {
     return Task(
@@ -64,7 +66,7 @@ class Task extends HiveObject {
       status: status ?? this.status,
       timeSpent: timeSpent ?? this.timeSpent,
       focusStartTime: focusStartTime ?? this.focusStartTime,
-      dueDate: dueDate ?? this.dueDate,
+      dueDate: dueDate == _undefined ? this.dueDate : dueDate as DateTime?,
       isDateDetected: isDateDetected ?? this.isDateDetected,
     );
   }
