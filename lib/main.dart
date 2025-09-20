@@ -89,6 +89,10 @@ class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
             borderSide: BorderSide(color: Colors.grey),
           ),
         ),
+        textSelectionTheme: const TextSelectionThemeData(
+          selectionColor: Colors.grey,
+          selectionHandleColor: Colors.white,
+        ),
       ),
       home: const HomeScreen(),
     );
