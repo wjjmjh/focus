@@ -109,18 +109,34 @@ class _AddTaskFormState extends State<AddTaskForm> {
                 child: InkWell(
                   onTap: _selectDueDate,
                   child: InputDecorator(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Due Date (optional)',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      border: const OutlineInputBorder(),
+                      enabledBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white),
                       ),
-                      suffixIcon:
-                          Icon(Icons.calendar_today, color: Colors.white),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_selectedDueDate != null)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedDueDate = null;
+                                });
+                              },
+                              child: const Icon(Icons.clear,
+                                  color: Colors.white, size: 20),
+                            ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.calendar_today, color: Colors.white),
+                          const SizedBox(width: 12),
+                        ],
+                      ),
                     ),
                     child: Text(
                       _selectedDueDate == null
