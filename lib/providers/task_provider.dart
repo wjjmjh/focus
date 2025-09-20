@@ -150,4 +150,22 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       print('error resetting focus time: $e');
     }
   }
+
+  Future<void> clearDueDate(Task task) async {
+    try {
+      final updatedTask = task.copyWith(
+        dueDate: null,
+        isDateDetected: false,
+      );
+      await _localStorageService.updateTask(updatedTask);
+      await NotificationService.cancelTaskReminders(task);
+
+      state = [
+        for (final t in state)
+          if (t.id == task.id) updatedTask else t
+      ];
+    } catch (e) {
+      print('error clearing due date: $e');
+    }
+  }
 }
