@@ -69,11 +69,9 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
           if (t.id == task.id) task else t
       ];
 
-      if (task.status == 'Done') {
-        await NotificationService.cancelTaskReminders(task);
-      } else if (task.dueDate != null) {
-        await NotificationService.scheduleTaskReminders(task);
-      }
+      await (task.status == 'Done' || task.dueDate == null
+          ? NotificationService.cancelTaskReminders(task)
+          : NotificationService.scheduleTaskReminders(task));
     } catch (e) {
       print('error updating task: $e');
     }
