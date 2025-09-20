@@ -66,6 +66,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
                 child: TextFormField(
                   autofocus: true,
                   style: const TextStyle(color: Colors.white),
+                  cursorColor: Colors.white,
                   decoration: const InputDecoration(
                     hintText: 'Task Title',
                     hintStyle: TextStyle(color: Colors.grey),
@@ -90,6 +91,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
                 margin: const EdgeInsets.symmetric(vertical: 10.0),
                 child: TextFormField(
                   style: const TextStyle(color: Colors.white),
+                  cursorColor: Colors.white,
                   decoration: const InputDecoration(
                     hintText: 'Task Description',
                     hintStyle: TextStyle(color: Colors.grey),
