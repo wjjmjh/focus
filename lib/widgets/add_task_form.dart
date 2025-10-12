@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 class AddTaskForm extends StatefulWidget {
-  final Function(String, String, int, DateTime?) addTaskHandler;
+  final Function(String, String, int, DateTime?, String) addTaskHandler;
   final String? initialTitle;
   final String? initialDescription;
   final int? initialPriority;
   final DateTime? initialDueDate;
+  final String? initialCategory;
 
   const AddTaskForm({
     super.key,
@@ -14,6 +15,7 @@ class AddTaskForm extends StatefulWidget {
     this.initialDescription,
     this.initialPriority,
     this.initialDueDate,
+    this.initialCategory,
   });
 
   @override
@@ -25,6 +27,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
   late TextEditingController _descriptionController;
   late int _selectedPriority;
   DateTime? _selectedDueDate;
+  late String _selectedCategory;
 
   @override
   void initState() {
@@ -34,6 +37,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
         TextEditingController(text: widget.initialDescription);
     _selectedPriority = widget.initialPriority ?? 3; // Default priority
     _selectedDueDate = widget.initialDueDate;
+    _selectedCategory = widget.initialCategory ?? 'life'; // Default category
   }
 
   @override
@@ -181,6 +185,52 @@ class _AddTaskFormState extends State<AddTaskForm> {
                   });
                 },
               ),
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 10.0),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  style: const TextStyle(color: Colors.white),
+                  dropdownColor: Colors.grey.shade800,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Category',
+                    labelStyle: TextStyle(color: Colors.white),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem<String>(
+                      value: 'life',
+                      child: Row(
+                        children: [
+                          Icon(Icons.home, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text('Life', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'work',
+                      child: Row(
+                        children: [
+                          Icon(Icons.work, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text('Work', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value!;
+                    });
+                  },
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: ElevatedButton(
@@ -197,6 +247,7 @@ class _AddTaskFormState extends State<AddTaskForm> {
                         _descriptionController.text.trim(),
                         _selectedPriority,
                         _selectedDueDate,
+                        _selectedCategory,
                       );
                       Navigator.of(context).pop();
                     }

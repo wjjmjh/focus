@@ -9,7 +9,12 @@ class LocalStorageService {
   }
 
   Future<List<Task>> getTasks() async {
-    return _taskBox.values.toList();
+    try {
+      final tasks = _taskBox.values.toList();
+      return tasks;
+    } catch (e, stackTrace) {
+      return [];
+    }
   }
 
   Future<void> addTask(Task task) async {

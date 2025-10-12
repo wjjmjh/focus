@@ -25,13 +25,14 @@ class TaskAdapter extends TypeAdapter<Task> {
       focusStartTime: fields[6] as DateTime?,
       dueDate: fields[7] as DateTime?,
       isDateDetected: fields[8] as bool,
+      category: fields[9] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -49,7 +50,9 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(7)
       ..write(obj.dueDate)
       ..writeByte(8)
-      ..write(obj.isDateDetected);
+      ..write(obj.isDateDetected)
+      ..writeByte(9)
+      ..write(obj.category);
   }
 
   @override

@@ -261,13 +261,21 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
           topRight: Radius.circular(16),
         ),
       ),
-      builder: (context) => AddTaskForm(
-        addTaskHandler: (String title, String description, int priority,
-            DateTime? dueDate) {
-          final notifier = ref.read(taskListProvider.notifier);
-          notifier.addTask(title, description, priority, widget.title, dueDate);
-        },
-      ),
+      builder: (context) {
+        final currentFilter = ref.read(taskFilterProvider);
+        final defaultCategory =
+            currentFilter == TaskFilter.work ? 'work' : 'life';
+
+        return AddTaskForm(
+          addTaskHandler: (String title, String description, int priority,
+              DateTime? dueDate, String category) {
+            final notifier = ref.read(taskListProvider.notifier);
+            notifier.addTask(
+                title, description, priority, widget.title, dueDate, category);
+          },
+          initialCategory: defaultCategory,
+        );
+      },
     );
   }
 }

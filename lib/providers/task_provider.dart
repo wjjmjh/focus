@@ -3,6 +3,10 @@ import '../models/task_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 
+enum TaskFilter { all, life, work }
+
+final taskFilterProvider = StateProvider<TaskFilter>((ref) => TaskFilter.life);
+
 final localStorageServiceProvider =
     FutureProvider<LocalStorageService>((ref) async {
   final service = LocalStorageService();
@@ -17,6 +21,20 @@ final taskListProvider =
         orElse: () => throw Exception('LocalStorageService not initialised'),
       );
   return TaskListNotifier(storageService);
+});
+
+final filteredTaskListProvider = Provider<List<Task>>((ref) {
+  final tasks = ref.watch(taskListProvider);
+  final filter = ref.watch(taskFilterProvider);
+
+  switch (filter) {
+    case TaskFilter.all:
+      return tasks;
+    case TaskFilter.life:
+      return tasks.where((task) => task.category == 'life').toList();
+    case TaskFilter.work:
+      return tasks.where((task) => task.category == 'work').toList();
+  }
 });
 
 class TaskListNotifier extends StateNotifier<List<Task>> {
@@ -37,7 +55,8 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
   }
 
   Future<void> addTask(String title, String description, int priority,
-      String status, DateTime? dueDate) async {
+      String status, DateTime? dueDate,
+      [String category = 'life']) async {
     final newTask = Task(
       id: DateTime.now().toString(),
       title: title,
@@ -47,6 +66,7 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       focusStartTime: status == 'Focus' ? DateTime.now() : null,
       dueDate: dueDate,
       isDateDetected: dueDate != null,
+      category: category,
     );
 
     try {

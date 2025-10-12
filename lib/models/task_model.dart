@@ -33,6 +33,9 @@ class Task extends HiveObject {
   @HiveField(8)
   final bool isDateDetected;
 
+  @HiveField(9)
+  final String category;
+
   Task({
     required this.id,
     required this.title,
@@ -43,7 +46,9 @@ class Task extends HiveObject {
     this.focusStartTime,
     this.dueDate,
     this.isDateDetected = false,
-  }) : timeSpentMillis = timeSpent.inMilliseconds;
+    String? category,
+  })  : timeSpentMillis = timeSpent.inMilliseconds,
+        category = category ?? 'life';
 
   Duration get timeSpent => Duration(milliseconds: timeSpentMillis);
 
@@ -57,6 +62,7 @@ class Task extends HiveObject {
     DateTime? focusStartTime,
     Object? dueDate = _undefined,
     bool? isDateDetected,
+    String? category,
   }) {
     return Task(
       id: id ?? this.id,
@@ -68,6 +74,7 @@ class Task extends HiveObject {
       focusStartTime: focusStartTime ?? this.focusStartTime,
       dueDate: dueDate == _undefined ? this.dueDate : dueDate as DateTime?,
       isDateDetected: isDateDetected ?? this.isDateDetected,
+      category: category ?? this.category,
     );
   }
 

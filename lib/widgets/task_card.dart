@@ -470,13 +470,14 @@ class _TaskCardState extends ConsumerState<TaskCard> {
         child: SingleChildScrollView(
           child: AddTaskForm(
             addTaskHandler: (String title, String description, int priority,
-                DateTime? dueDate) {
+                DateTime? dueDate, String category) {
               final updatedTask = widget.task.copyWith(
                 title: title,
                 description: description,
                 priority: priority.toString(),
                 dueDate: dueDate,
                 isDateDetected: dueDate != null,
+                category: category,
               );
               ref.read(taskListProvider.notifier).updateTask(updatedTask);
             },
@@ -484,6 +485,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             initialDescription: widget.task.description,
             initialPriority: int.tryParse(widget.task.priority) ?? 3,
             initialDueDate: widget.task.dueDate,
+            initialCategory: widget.task.category,
           ),
         ),
       ),
