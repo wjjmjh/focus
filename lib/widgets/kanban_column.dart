@@ -37,7 +37,27 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
   @override
   Widget build(BuildContext context) {
     final sortedTasks = List<Task>.from(widget.tasks)
-      ..sort((a, b) => b.priority.compareTo(a.priority));
+      ..sort((a, b) {
+        // sort Done tasks by completion time
+        if (widget.title == 'Done') {
+          final aTime = a.completedAt;
+          final bTime = b.completedAt;
+
+          // if both have completedAt, sort by most recent first
+          if (aTime != null && bTime != null) {
+            return bTime.compareTo(aTime);
+          }
+          // tasks with completedAt come before those without
+          if (aTime != null) return -1;
+          if (bTime != null) return 1;
+
+          // if neither has completedAt, fall back to priority
+          return b.priority.compareTo(a.priority);
+        }
+
+        // for other columns, sort by priority
+        return b.priority.compareTo(a.priority);
+      });
 
     return Stack(
       children: [
@@ -99,7 +119,11 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                         ),
                         child: Row(
                           children: [
-                            const SizedBox(width: 48),
+                            if (widget.title == 'Done' &&
+                                widget.tasks.isNotEmpty)
+                              _ArchiveButtonWidget(isHovered: _isHovered)
+                            else
+                              const SizedBox(width: 48),
                             Expanded(
                               child: Center(
                                 child: Text(
@@ -276,6 +300,94 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
           initialCategory: defaultCategory,
         );
       },
+    );
+  }
+}
+
+class _ArchiveButtonWidget extends ConsumerStatefulWidget {
+  final bool isHovered;
+
+  const _ArchiveButtonWidget({required this.isHovered});
+
+  @override
+  _ArchiveButtonWidgetState createState() => _ArchiveButtonWidgetState();
+}
+
+class _ArchiveButtonWidgetState extends ConsumerState<_ArchiveButtonWidget> {
+  bool _isArchiveHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentFilter = ref.watch(taskFilterProvider);
+    final category = currentFilter == TaskFilter.work ? 'work' : 'life';
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isArchiveHovered = true),
+      onExit: (_) => setState(() => _isArchiveHovered = false),
+      child: Container(
+        margin: const EdgeInsets.only(left: 8),
+        decoration: BoxDecoration(
+          color: _isArchiveHovered
+              ? Colors.white.withOpacity(0.3)
+              : Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => _confirmArchive(context, category),
+            child: const Tooltip(
+              message: 'Archive all done tasks',
+              child: Padding(
+                padding: EdgeInsets.all(6.0),
+                child: Icon(
+                  Icons.archive,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmArchive(BuildContext context, String category) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: const Text(
+          'Archive Done Tasks',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Archive all completed $category tasks?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final notifier = ref.read(taskListProvider.notifier);
+              notifier.archiveAllDoneTasks(category);
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.orange,
+            ),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -36,6 +36,12 @@ class Task extends HiveObject {
   @HiveField(9)
   final String category;
 
+  @HiveField(10)
+  final bool isArchived;
+
+  @HiveField(11)
+  final DateTime? completedAt;
+
   Task({
     required this.id,
     required this.title,
@@ -47,6 +53,8 @@ class Task extends HiveObject {
     this.dueDate,
     this.isDateDetected = false,
     String? category,
+    this.isArchived = false,
+    this.completedAt,
   })  : timeSpentMillis = timeSpent.inMilliseconds,
         category = category ?? 'life';
 
@@ -63,6 +71,8 @@ class Task extends HiveObject {
     Object? dueDate = _undefined,
     bool? isDateDetected,
     String? category,
+    bool? isArchived,
+    Object? completedAt = _undefined,
   }) {
     return Task(
       id: id ?? this.id,
@@ -75,6 +85,10 @@ class Task extends HiveObject {
       dueDate: dueDate == _undefined ? this.dueDate : dueDate as DateTime?,
       isDateDetected: isDateDetected ?? this.isDateDetected,
       category: category ?? this.category,
+      isArchived: isArchived ?? this.isArchived,
+      completedAt: completedAt == _undefined
+          ? this.completedAt
+          : completedAt as DateTime?,
     );
   }
 

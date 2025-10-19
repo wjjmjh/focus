@@ -46,7 +46,8 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
 
   Future<void> _loadTasksFromStorage() async {
     try {
-      final tasks = await _localStorageService.getTasks();
+      // only load non-archived tasks
+      final tasks = await _localStorageService.getTasks(includeArchived: false);
       state = tasks;
     } catch (e) {
       print('error loading tasks: $e');
@@ -131,10 +132,18 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
           focusStartTime: DateTime.now(),
         );
       } else if (currentTask.status == 'Focus' && newStatus != 'Focus') {
-        // stop focusing
+        // stop focusing, and set completedAt if moving to Done
         updatedTask = currentTask.copyWith(
           status: newStatus,
           focusStartTime: null,
+          completedAt:
+              newStatus == 'Done' ? DateTime.now() : currentTask.completedAt,
+        );
+      } else if (newStatus == 'Done' && currentTask.status != 'Done') {
+        // set completedAt when moving to Done
+        updatedTask = currentTask.copyWith(
+          status: newStatus,
+          completedAt: DateTime.now(),
         );
       } else {
         updatedTask = currentTask.copyWith(status: newStatus);
@@ -184,6 +193,59 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       ];
     } catch (e) {
       print('error clearing due date: $e');
+    }
+  }
+
+  Future<void> archiveTask(Task task) async {
+    try {
+      final archivedTask = task.copyWith(isArchived: true);
+      await _localStorageService.updateTask(archivedTask);
+      state = state.where((t) => t.id != task.id).toList();
+    } catch (e) {
+      print('error archiving task: $e');
+    }
+  }
+
+  Future<void> archiveAllDoneTasks(String category) async {
+    try {
+      final doneTasks = state
+          .where((task) => task.status == 'Done' && task.category == category)
+          .toList();
+
+      for (final task in doneTasks) {
+        final archivedTask = task.copyWith(isArchived: true);
+        await _localStorageService.updateTask(archivedTask);
+      }
+
+      state = state
+          .where(
+              (task) => !(task.status == 'Done' && task.category == category))
+          .toList();
+    } catch (e) {
+      print('error archiving done tasks: $e');
+    }
+  }
+
+  Future<List<Task>> getArchivedTasks(String category) async {
+    try {
+      return await _localStorageService.getArchivedTasks(category);
+    } catch (e) {
+      print('error getting archived tasks: $e');
+      return [];
+    }
+  }
+
+  Future<void> unarchiveTask(Task task) async {
+    try {
+      final unarchivedTask = task.copyWith(isArchived: false);
+      await _localStorageService.updateTask(unarchivedTask);
+      state = [...state, unarchivedTask];
+
+      if (unarchivedTask.dueDate != null && unarchivedTask.status != 'Done') {
+        await NotificationService.scheduleTaskReminders(unarchivedTask);
+      }
+    } catch (e) {
+      print('error unarchiving task: $e');
     }
   }
 }

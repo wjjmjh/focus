@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/task_provider.dart';
 import '../widgets/kanban_board.dart';
 import '../widgets/styled_background.dart';
+import 'archived_tasks_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,18 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('focus'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.archive_outlined),
+            tooltip: 'View archived tasks',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ArchivedTasksScreen(),
+                ),
+              );
+            },
+          ),
           Container(
             margin: const EdgeInsets.only(right: 16),
             child: Container(

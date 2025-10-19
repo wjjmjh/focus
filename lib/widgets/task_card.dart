@@ -12,8 +12,11 @@ final ValueNotifier<Set<String>> _dragStateNotifier =
 
 class TaskCard extends ConsumerStatefulWidget {
   final Task task;
+  final bool isArchived;
+  final VoidCallback? onDeleted;
 
-  TaskCard({required this.task, Key? key})
+  TaskCard(
+      {required this.task, this.isArchived = false, this.onDeleted, Key? key})
       : super(key: key ?? ValueKey(task.id));
 
   @override
@@ -95,6 +98,16 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     final priorityColor = _priorityColor(priority, isDone);
     final dueColor = _dueDateColor(task.dueDate, isDone);
 
+    // archived tasks
+    if (widget.isArchived) {
+      return MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: _buildCard(
+            context, isDone, isHighPriority, priorityColor, dueColor),
+      );
+    }
+
     return ValueListenableBuilder<Set<String>>(
       valueListenable: _dragStateNotifier,
       builder: (context, draggingIds, _) {
@@ -168,7 +181,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     final task = widget.task;
 
     return Container(
-      width: 280,
+      width: widget.isArchived ? null : 280,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.2),
@@ -394,7 +407,10 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             child: const Text('Delete'),
             onPressed: () async {
               await ref.read(taskListProvider.notifier).deleteTask(widget.task);
-              if (mounted) Navigator.of(context).maybePop();
+              if (mounted) {
+                Navigator.of(context).maybePop();
+                widget.onDeleted?.call();
+              }
             },
           ),
         ],

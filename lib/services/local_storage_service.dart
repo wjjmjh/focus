@@ -8,11 +8,25 @@ class LocalStorageService {
     _taskBox = await Hive.openBox<Task>('tasks');
   }
 
-  Future<List<Task>> getTasks() async {
+  Future<List<Task>> getTasks({bool includeArchived = false}) async {
     try {
       final tasks = _taskBox.values.toList();
-      return tasks;
-    } catch (e, stackTrace) {
+      if (includeArchived) {
+        return tasks;
+      }
+      return tasks.where((task) => !task.isArchived).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Task>> getArchivedTasks(String category) async {
+    try {
+      final tasks = _taskBox.values.toList();
+      return tasks
+          .where((task) => task.isArchived && task.category == category)
+          .toList();
+    } catch (e) {
       return [];
     }
   }
