@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../models/task_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
@@ -49,6 +50,10 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       // only load non-archived tasks
       final tasks = await _localStorageService.getTasks(includeArchived: false);
       state = tasks;
+
+      // Re-sync scheduled reminders with the live task list so they self-heal
+      // after a reboot, force-stop or app update.
+      await NotificationService.reconcileAll(tasks);
     } catch (e) {
       print('error loading tasks: $e');
       state = [];
@@ -59,7 +64,7 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       String status, DateTime? dueDate,
       [String category = 'life']) async {
     final newTask = Task(
-      id: DateTime.now().toString(),
+      id: const Uuid().v4(),
       title: title,
       description: description,
       priority: priority.toString(),
@@ -75,7 +80,8 @@ class TaskListNotifier extends StateNotifier<List<Task>> {
       state = [...state, newTask];
 
       if (dueDate != null) {
-        await NotificationService.scheduleTaskReminders(newTask);
+        await NotificationService.scheduleTaskReminders(newTask,
+            allowImmediate: true);
       }
     } catch (e) {
       print('error adding task: $e');

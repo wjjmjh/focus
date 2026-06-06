@@ -40,6 +40,9 @@ android {
     ndkVersion flutter.ndkVersion
 
     compileOptions {
+        // Required by flutter_local_notifications' use of java.time when
+        // scheduling notifications (zonedSchedule).
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -54,10 +57,15 @@ android {
 
     defaultConfig {
         applicationId "com.example.focus"
-        minSdkVersion flutter.minSdkVersion
+        // 21+ is required for core library desugaring without multidex, and is
+        // a safe floor (Android 5.0). flutter_local_notifications needs 21+.
+        minSdkVersion Math.max(flutter.minSdkVersion, 21)
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        // App display name; overridden for debug below. Referenced from the
+        // manifest as @string/app_name.
+        resValue "string", "app_name", "focus"
     }
 
     signingConfigs {
@@ -72,6 +80,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Install test builds as a completely separate app so they never
+            // touch the real `com.example.focus` install or its data.
+            applicationIdSuffix ".debug"
+            resValue "string", "app_name", "focus (dev)"
+        }
         release {
             minifyEnabled true
             shrinkResources true
@@ -89,4 +103,8 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    // 2.0.x (with AGP 7.4+) keeps platform-extension signatures like
+    // java.util.function.Consumer intact, so androidx.window (used by the
+    // Flutter embedding) keeps working when desugaring is enabled.
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 }
