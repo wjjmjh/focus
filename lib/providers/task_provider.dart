@@ -8,10 +8,6 @@ enum TaskFilter { all, life, work }
 
 final taskFilterProvider = StateProvider<TaskFilter>((ref) => TaskFilter.life);
 
-final notificationsEnabledProvider = FutureProvider<bool>((ref) {
-  return NotificationService.areNotificationsEnabled();
-});
-
 final localStorageServiceProvider =
     FutureProvider<LocalStorageService>((ref) async {
   final service = LocalStorageService();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/task_provider.dart';
-import '../services/notification_service.dart';
 import '../widgets/kanban_board.dart';
 import '../widgets/styled_background.dart';
 import 'archived_tasks_screen.dart';
@@ -14,19 +13,10 @@ class HomeScreen extends ConsumerWidget {
     final localStorageServiceAsync = ref.watch(localStorageServiceProvider);
     final currentFilter = ref.watch(taskFilterProvider);
 
-    final notificationsEnabled =
-        ref.watch(notificationsEnabledProvider).valueOrNull ?? true;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('focus'),
         actions: [
-          if (!notificationsEnabled)
-            IconButton(
-              icon: const Icon(Icons.notifications_off_outlined),
-              tooltip: 'Reminders are off',
-              onPressed: () => _handleEnableNotifications(context, ref),
-            ),
           IconButton(
             icon: const Icon(Icons.archive_outlined),
             tooltip: 'View archived tasks',
@@ -82,22 +72,6 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _handleEnableNotifications(
-      BuildContext context, WidgetRef ref) async {
-    final granted = await NotificationService.requestPermission();
-    ref.invalidate(notificationsEnabledProvider);
-
-    if (!granted && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Enable notifications in Settings to get task reminders.',
-          ),
-        ),
-      );
-    }
   }
 
   Widget _buildToggleButton(

@@ -100,20 +100,6 @@ class NotificationService {
     return true;
   }
 
-  static Future<bool> areNotificationsEnabled() async {
-    if (Platform.isAndroid) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      return (await android?.areNotificationsEnabled()) ?? false;
-    }
-    if (Platform.isIOS) {
-      final ios = _plugin.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
-      return (await ios?.checkPermissions())?.isEnabled ?? false;
-    }
-    return true;
-  }
-
   // ---------- Scheduling ----------
 
   static Future<void> scheduleTaskReminders(
