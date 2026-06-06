@@ -21,6 +21,8 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
   late ConfettiController _confettiController;
   bool _isHovered = false;
 
+  static const double _headerHeight = 55.0;
+
   @override
   void initState() {
     super.initState();
@@ -84,14 +86,7 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                   width: 300,
                   margin: const EdgeInsets.only(right: 16.0),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.black.withOpacity(0.8),
-                        Colors.grey.shade900.withOpacity(0.7),
-                      ],
-                    ),
+                    color: Colors.black.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(12.0),
                     border: Border.all(
                       color: _getColumnBorderColor(widget.title),
@@ -105,68 +100,9 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: _getColumnGradient(widget.title),
-                          ),
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(11.0)),
-                        ),
-                        child: Row(
-                          children: [
-                            if (widget.title == 'Done' &&
-                                widget.tasks.isNotEmpty)
-                              _ArchiveButtonWidget(isHovered: _isHovered)
-                            else
-                              const SizedBox(width: 48),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  widget.title,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            MouseRegion(
-                              onEnter: (_) => setState(() => _isHovered = true),
-                              onExit: (_) => setState(() => _isHovered = false),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: _isHovered
-                                      ? _getButtonColor(widget.title, true)
-                                      : _getButtonColor(widget.title, false),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(6),
-                                    onTap: () => _showAddTaskForm(context),
-                                    child: const Padding(
-                                      padding: EdgeInsets.all(6.0),
-                                      child: Icon(
-                                        Icons.add,
-                                        color: Colors.white,
-                                        size: 18,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
+                      Positioned.fill(
                         child: sortedTasks.isEmpty
                             ? Center(
                                 child: Text(
@@ -178,7 +114,8 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                                 ),
                               )
                             : ListView.builder(
-                                padding: const EdgeInsets.all(8.0),
+                                padding: const EdgeInsets.fromLTRB(
+                                    8.0, _headerHeight + 8.0, 8.0, 8.0),
                                 itemCount: sortedTasks.length,
                                 itemBuilder: (context, index) {
                                   return TaskCard(
@@ -187,6 +124,92 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
                                   );
                                 },
                               ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(11.0)),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                            child: Container(
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.white.withOpacity(0.18),
+                                    Colors.white.withOpacity(0.04),
+                                  ],
+                                ),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.white.withOpacity(0.18),
+                                    width: 1.0,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  if (widget.title == 'Done' &&
+                                      widget.tasks.isNotEmpty)
+                                    _ArchiveButtonWidget(isHovered: _isHovered)
+                                  else
+                                    const SizedBox(width: 48),
+                                  Expanded(
+                                    child: Center(
+                                      child: Text(
+                                        widget.title,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  MouseRegion(
+                                    onEnter: (_) =>
+                                        setState(() => _isHovered = true),
+                                    onExit: (_) =>
+                                        setState(() => _isHovered = false),
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: BoxDecoration(
+                                        color: _isHovered
+                                            ? _getButtonColor(
+                                                widget.title, true)
+                                            : _getButtonColor(
+                                                widget.title, false),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          onTap: () =>
+                                              _showAddTaskForm(context),
+                                          child: const Padding(
+                                            padding: EdgeInsets.all(6.0),
+                                            child: Icon(
+                                              Icons.add,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -213,64 +236,16 @@ class _KanbanColumnState extends ConsumerState<KanbanColumn> {
     );
   }
 
-  List<Color> _getColumnGradient(String title) {
-    switch (title) {
-      case 'Backlog':
-        return [
-          Colors.purple.shade800,
-          Colors.purple.shade900,
-        ];
-      case 'Ready':
-        return [
-          Colors.blue.shade800,
-          Colors.blue.shade900,
-        ];
-      case 'Focus':
-        return [
-          const Color(0xFFFF8C00),
-          const Color(0xFF8B4513),
-        ];
-      case 'Done':
-        return [
-          Colors.green.shade800,
-          Colors.green.shade900,
-        ];
-      default:
-        return [
-          Colors.grey.shade800,
-          Colors.grey.shade900,
-        ];
-    }
-  }
-
   Color _getButtonColor(String title, bool isHovered) {
-    switch (title) {
-      case 'Backlog':
-        return isHovered ? Colors.purple.shade600 : Colors.purple.shade700;
-      case 'Ready':
-        return isHovered ? Colors.blue.shade600 : Colors.blue.shade700;
-      case 'Focus':
-        return isHovered ? const Color(0xFFFFA500) : const Color(0xFFFF8C00);
-      case 'Done':
-        return isHovered ? Colors.green.shade600 : Colors.green.shade700;
-      default:
-        return isHovered ? Colors.grey.shade600 : Colors.grey.shade700;
-    }
+    return isHovered
+        ? Colors.white.withOpacity(0.22)
+        : Colors.white.withOpacity(0.12);
   }
 
   Color _getColumnBorderColor(String title) {
-    switch (title) {
-      case 'Backlog':
-        return Colors.purple.shade700.withOpacity(0.5);
-      case 'Ready':
-        return Colors.blue.shade700.withOpacity(0.5);
-      case 'Focus':
-        return const Color(0xFFFF8C00).withOpacity(0.6);
-      case 'Done':
-        return Colors.green.shade700.withOpacity(0.5);
-      default:
-        return Colors.grey.shade700.withOpacity(0.5);
-    }
+    return title == 'Focus'
+        ? Colors.white.withOpacity(0.55)
+        : Colors.white.withOpacity(0.18);
   }
 
   void _showAddTaskForm(BuildContext context) {
@@ -382,7 +357,7 @@ class _ArchiveButtonWidgetState extends ConsumerState<_ArchiveButtonWidget> {
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(
-              foregroundColor: Colors.orange,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Archive'),
           ),
