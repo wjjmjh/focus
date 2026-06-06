@@ -26,6 +26,7 @@ class NotificationService {
   static bool _initialised = false;
 
   // ---------- Init ----------
+
   static Future<void> init() async {
     if (_initialised) return;
 
@@ -114,6 +115,7 @@ class NotificationService {
   }
 
   // ---------- Scheduling ----------
+
   static Future<void> scheduleTaskReminders(
     Task task, {
     bool allowImmediate = false,
@@ -157,6 +159,7 @@ class NotificationService {
   }
 
   // ---------- Internals ----------
+
   static Future<void> _scheduleAt({
     required int id,
     required DateTime day,
