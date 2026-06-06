@@ -1,200 +1,209 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/task_model.dart';
 
 class NotificationService {
+  NotificationService._();
+
   static const _channelId = 'focus_task_reminders';
   static const _channelName = 'Focus Task Reminders';
   static const _channelDescription =
-      'Notifications for upcoming Focus task deadlines';
+      'Reminders for upcoming Focus task deadlines';
 
-  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
+  static const _reminderHour = 9;
+  static const _slotDayBefore = 1;
+  static const _slotDueDay = 2;
+
+  static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
-  static const MethodChannel _alarmChannel =
-      MethodChannel('com.example.focus/alarm');
-
-  static bool _isAppInForeground = true;
+  static bool _initialised = false;
 
   // ---------- Init ----------
-  static Future<bool> init() async {
+  static Future<void> init() async {
+    if (_initialised) return;
+
+    await _configureLocalTimeZone();
+
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const darwinSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    await _plugin.initialize(
+      const InitializationSettings(
+        android: androidSettings,
+        iOS: darwinSettings,
+      ),
+      onDidReceiveNotificationResponse: _onNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+    );
+
+    await _createAndroidChannel();
+    _initialised = true;
+
+    await requestPermission();
+  }
+
+  static Future<void> _configureLocalTimeZone() async {
+    tzdata.initializeTimeZones();
     try {
-      tzdata.initializeTimeZones();
+      final timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (_) {
       tz.setLocalLocation(tz.local);
-
-      final permissionsGranted = await _requestPermissions();
-      return permissionsGranted;
-    } catch (e) {
-      return false;
     }
   }
 
-  static Future<bool> _requestPermissions() async {
-    bool permissionsGranted = true;
+  static Future<void> _createAndroidChannel() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _channelId,
+        _channelName,
+        description: _channelDescription,
+        importance: Importance.high,
+      ),
+    );
+  }
 
-    // Android 13+ runtime notifications permission
+  // ---------- Permissions ----------
+
+  static Future<bool> requestPermission() async {
     if (Platform.isAndroid) {
-      final androidImplementation =
-          _notificationsPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      if (androidImplementation != null) {
-        final granted =
-            await androidImplementation.requestNotificationsPermission();
-        permissionsGranted = granted ?? false;
-      }
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      return (await android?.requestNotificationsPermission()) ?? false;
     }
-
-    // iOS explicit permission
     if (Platform.isIOS) {
-      final iosImplementation =
-          _notificationsPlugin.resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>();
-      if (iosImplementation != null) {
-        final granted = await iosImplementation.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        permissionsGranted = granted ?? false;
-      }
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      return (await ios?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          )) ??
+          false;
     }
-
-    return permissionsGranted;
+    return true;
   }
 
-  // ---------- Public APIs ----------
-  static Future<void> scheduleTaskReminders(Task task) async {
-    final due = task.dueDate;
-    if (due == null || task.status == 'Done') return;
+  static Future<bool> areNotificationsEnabled() async {
+    if (Platform.isAndroid) {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      return (await android?.areNotificationsEnabled()) ?? false;
+    }
+    if (Platform.isIOS) {
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      return (await ios?.checkPermissions())?.isEnabled ?? false;
+    }
+    return true;
+  }
 
-    // Cancel previous schedules for this task
+  // ---------- Scheduling ----------
+  static Future<void> scheduleTaskReminders(
+    Task task, {
+    bool allowImmediate = false,
+  }) async {
     await cancelTaskReminders(task);
 
-    final now = DateTime.now();
+    final due = task.dueDate;
+    if (due == null || task.status == 'Done' || task.isArchived) return;
 
-    if (due.isBefore(now) && !_isSameDay(due, now)) {
-      return;
-    }
+    final dueDay = DateTime(due.year, due.month, due.day);
+    final dayBefore = dueDay.subtract(const Duration(days: 1));
 
-    final baseId = (task.id.hashCode & 0x7fffffff);
-    final idMinus1Day = _deriveId(baseId, 1);
-    final idDueDay = _deriveId(baseId, 2);
-
-    // Titles/bodies
-    const dueTomorrowTitle = 'Due Tomorrow';
-    const dueTodayTitle = 'Due TODAY';
-
-    // One day before at 9am local
-    final dayBefore = DateTime(due.year, due.month, due.day)
-        .subtract(const Duration(days: 1));
-
-    if (_isSameDay(dayBefore, now)) {
-      await _zonedAtNineAM(
-        idMinus1Day,
-        dueTomorrowTitle,
-        '${task.title}\nDue: ${_formatDate(due)}',
-        dayBefore,
-      );
-    } else if (dayBefore.isAfter(now)) {
-      await _zonedAtNineAM(
-        idMinus1Day,
-        dueTomorrowTitle,
-        '${task.title}\nDue: ${_formatDate(due)}',
-        dayBefore,
-      );
-    }
-
-    // Due day at scheduled time
-    await _zonedAtNineAM(
-      idDueDay,
-      dueTodayTitle,
-      '${task.title}\nDue Today!',
-      DateTime(due.year, due.month, due.day),
+    await _scheduleAt(
+      id: _stableId(task.id, _slotDayBefore),
+      day: dayBefore,
+      title: 'Due tomorrow',
+      body: task.title,
+      payload: task.id,
+      allowImmediate: false,
+    );
+    await _scheduleAt(
+      id: _stableId(task.id, _slotDueDay),
+      day: dueDay,
+      title: 'Due today',
+      body: task.title,
+      payload: task.id,
+      allowImmediate: allowImmediate,
     );
   }
 
   static Future<void> cancelTaskReminders(Task task) async {
-    final baseId = (task.id.hashCode & 0x7fffffff);
-    final idMinus1Day = _deriveId(baseId, 1);
-    final idDueDay = _deriveId(baseId, 2);
+    await _plugin.cancel(_stableId(task.id, _slotDayBefore));
+    await _plugin.cancel(_stableId(task.id, _slotDueDay));
+  }
 
-    // Cancel flutter notifications
-    await _notificationsPlugin.cancel(idMinus1Day);
-    await _notificationsPlugin.cancel(idDueDay);
-
-    // Cancel native alarms only on Android
-    if (Platform.isAndroid) {
-      await _alarmChannel
-          .invokeMethod('cancelAlarm', {'notificationId': idMinus1Day});
-      await _alarmChannel
-          .invokeMethod('cancelAlarm', {'notificationId': idDueDay});
+  static Future<void> reconcileAll(List<Task> tasks) async {
+    await _plugin.cancelAll();
+    for (final task in tasks) {
+      await scheduleTaskReminders(task);
     }
   }
 
-  static Future<void> showImmediateNotification(
-      String title, String body) async {
-    try {
-      final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
-      await _notificationsPlugin.show(id, title, body, _details());
-    } catch (e) {
-      // ...
-    }
+  // ---------- Internals ----------
+  static Future<void> _scheduleAt({
+    required int id,
+    required DateTime day,
+    required String title,
+    required String body,
+    required String payload,
+    required bool allowImmediate,
+  }) async {
+    final when = resolveFireTime(
+      day,
+      tz.TZDateTime.now(tz.local),
+      allowImmediate: allowImmediate,
+    );
+    if (when == null) return;
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      when,
+      _details(),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
+    );
   }
 
-  static void setAppLifecycleState(bool isInForeground) {
-    _isAppInForeground = isInForeground;
-  }
+  @visibleForTesting
+  static tz.TZDateTime? resolveFireTime(
+    DateTime day,
+    tz.TZDateTime now, {
+    required bool allowImmediate,
+  }) {
+    final scheduled = tz.TZDateTime(
+      tz.local,
+      day.year,
+      day.month,
+      day.day,
+      _reminderHour,
+    );
+    if (scheduled.isAfter(now)) return scheduled;
 
-  static int _deriveId(int base, int salt) {
-    return (base ^ (salt * 0x9e3779b9)) & 0x7fffffff;
-  }
-
-  static bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  static Future<void> _zonedAtNineAM(
-    int id,
-    String title,
-    String body,
-    DateTime dayLocal,
-  ) async {
-    try {
-      final scheduledLocal =
-          DateTime(dayLocal.year, dayLocal.month, dayLocal.day, 9, 0);
-      final now = DateTime.now();
-      if (!scheduledLocal.isAfter(now)) return;
-
-      if (Platform.isAndroid) {
-        // Use native AlarmManager for Android
-        await _alarmChannel.invokeMethod('scheduleAlarm', {
-          'title': title,
-          'body': body,
-          'timestamp': scheduledLocal.millisecondsSinceEpoch,
-          'notificationId': id,
-        });
-      } else {
-        // Use flutter_local_notifications for iOS
-        final tzTime = tz.TZDateTime.from(scheduledLocal, tz.local);
-        await _notificationsPlugin.zonedSchedule(
-          id,
-          title,
-          body,
-          tzTime,
-          _details(),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
-      }
-    } catch (e) {
-      // ...
-    }
+    final isToday =
+        day.year == now.year && day.month == now.month && day.day == now.day;
+    if (!isToday || !allowImmediate) return null;
+    return now.add(const Duration(minutes: 1));
   }
 
   static NotificationDetails _details() => const NotificationDetails(
@@ -205,8 +214,6 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
-          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-          showWhen: true,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -215,15 +222,22 @@ class NotificationService {
         ),
       );
 
-  static String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(date.year, date.month, date.day);
-
-    if (_isSameDay(target, today)) return 'Today';
-    if (_isSameDay(target, today.add(const Duration(days: 1)))) {
-      return 'Tomorrow';
+  static int _stableId(String taskId, int slot) {
+    var hash = 0x811c9dc5;
+    for (final unit in taskId.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xffffffff;
     }
-    return '${date.day}/${date.month}/${date.year}';
+    hash ^= slot;
+    hash = (hash * 0x01000193) & 0xffffffff;
+    return hash & 0x7fffffff;
   }
+
+  @visibleForTesting
+  static int stableId(String taskId, int slot) => _stableId(taskId, slot);
+
+  static void _onNotificationResponse(NotificationResponse response) {}
 }
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) {}

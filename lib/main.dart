@@ -25,33 +25,8 @@ void main() async {
   runApp(const ProviderScope(child: FocusApp()));
 }
 
-class FocusApp extends StatefulWidget {
+class FocusApp extends StatelessWidget {
   const FocusApp({Key? key}) : super(key: key);
-
-  @override
-  State<FocusApp> createState() => _FocusAppState();
-}
-
-class _FocusAppState extends State<FocusApp> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    NotificationService.setAppLifecycleState(
-        state == AppLifecycleState.resumed);
-  }
 
   @override
   Widget build(BuildContext context) {
